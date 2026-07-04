@@ -1,18 +1,16 @@
-<h1 align="center">Spug</h1>
+<h1 align="center">PipelineX</h1>
 
 <div align="center">
 
-Spug是面向中小型企业设计的轻量级无Agent的自动化运维平台，整合了主机管理、主机批量执行、主机在线终端、应用发布部署、在线任务计划、配置中心、监控、报警等一系列功能。
+PipelineX 是面向中小型企业设计的轻量级无 Agent 自动化运维与流水线发布平台。本项目基于优秀的开源运维平台 Spug 进行二次开发与定制，延续了其轻量、优雅、开箱即用的特性，并在其基础上引入了配置外部化设计、多源数据库支持、LDAP 软依赖适配等多项深度定制化改造。
 
 </div>
 
-- 项目官网：https://ops.spug.cc
-- 使用文档：https://ops.spug.cc/docs/about-spug/
+## 致敬与致谢
 
-## 演示环境
+PipelineX 采用 [Spug](https://github.com/openspug/spug) 作为上游基石进行二次开发。在此，我们由衷致谢 **OpenSpug 团队**及其开源贡献者们。Spug 极其优雅的代码架构与卓越 of UI 交互体验为本项目提供了极佳的基础。
 
-演示地址：https://demo.spug.cc
-
+本项目遵循 Spug 原有的 **AGPL-3.0** 开源许可协议，延续并弘扬开源共享的社区精神。
 
 ## 特性
 
@@ -20,31 +18,37 @@ Spug是面向中小型企业设计的轻量级无Agent的自动化运维平台�
 - **在线终端**: 主机支持浏览器在线终端登录
 - **文件管理**: 主机文件在线上传下载
 - **任务计划**: 灵活的在线任务计划
-- **发布部署**: 支持自定义发布部署流程
+- **发布部署**: 支持自定义发布部署流程，支持 Git 仓库深度集成
 - **配置中心**: 支持KV、文本、json等格式的配置
 - **监控中心**: 支持站点、端口、进程、自定义等监控
 - **报警中心**: 支持短信、邮件、钉钉、微信等报警方式
-- **优雅美观**: 基于 Ant Design 的UI界面
-- **开源免费**: 前后端代码完全开源
+- **优雅美观**: 完美融合高质感 PipelineX 视觉主题，基于 Ant Design
+- **二开适配**: 支持使用 `pipelinex.conf` 进行外部 MySQL 与 Redis 配置，彻底隔离敏感环境参数
 
-
-## 环境
+## 环境要求
 
 * Python 3.8+
 * Django 2.2
-* Node 12.14
+* Node 12.14+ (已解决 Node 17+ 升级引发的加密套件兼容问题)
 * React 16.11
 
-## 安装
+## 安装与快速启动
 
-[官方文档](https://ops.spug.cc/docs/install-docker)
+请参考项目中的 `pipelinex.example.conf` 配置文件模板，创建您的本地 `pipelinex.conf` 数据库与端口配置。
 
-更多使用帮助请参考： [使用文档](https://ops.spug.cc/docs/host-manage/)
+### 前端依赖安装与开发模式启动
+```powershell
+cd pipelinex_web
+npm install
+npm run dev
+```
 
-
-## 推荐项目
-[Yearning — MYSQL 开源SQL语句审核平台](https://github.com/cookieY/Yearning)
-
+### 后端依赖安装与服务启动
+```powershell
+cd pipelinex_api
+pip install -r requirements.txt
+python manage.py runserver
+```
 
 ## 预览
 
@@ -70,41 +74,5 @@ Spug是面向中小型企业设计的轻量级无Agent的自动化运维平台�
 #### 角色权限
 ![image](https://cdn.spug.cc/img/3.0/user-role.jpg)
 
-
-## 赞助
-<table>
-  <thead>
-    <tr>
-      <th align="center" style="width: 115px;">
-        <a href="https://www.ucloud.cn/site/active/kuaijie.html?invitation_code=C1xD0E5678FBA77">
-          <img src="https://cdn.spug.cc/img/ucloud.png" width="115px"><br>
-          <sub>UCloud</sub><br>
-          <sub>5 元/月云主机</sub>
-        </a>
-      </th>
-        <th align="center" style="width: 115px;">
-        <a href="https://www.aliyun.com/minisite/goods?userCode=bkj6b9tn">
-          <img src="https://cdn.spug.cc/img/aliyun-logo.png" width="115px"><br>
-          <sub>阿里云</sub><br>
-          <sub>2核心2G低至99元/年</sub>
-        </a>
-      </th>
-      <th align="center" style="width: 125px;">
-        <a href="http://www.magedu.com">
-          <img src="https://cdn.spug.cc/img/magedu-logo.jpeg" width="115px"><br>
-          <sub>马哥教育</sub><br>
-          <sub>IT人高薪职业学院</sub>
-        </a>
-      </th>
-    </tr>
-  </thead>
-</table>
-
-## 开发者群
-#### 关注Spug运维公众号加微信群、QQ群、获取最新产品动态
-<div >
-   <img src="https://cdn.spug.cc/img/spug-club.jpg" width = "300" height = "300" alt="spug-qq" align=center />
-<div>
-  
 ## License & Copyright
 [AGPL-3.0](https://opensource.org/licenses/AGPL-3.0)
