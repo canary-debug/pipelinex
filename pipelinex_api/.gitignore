@@ -7,5 +7,4 @@ migrations/
 /access.log
 /repos/*
 /logs/*
-overrides.py
 pipelinex.conf
