@@ -10,3 +10,6 @@ GitPython==3.1.50
 # python-ldap==3.4.7
 openpyxl==3.0.3
 user_agents==2.2.0
+cryptography>=42.0.0
+kubernetes>=29.0.0
+mysqlclient

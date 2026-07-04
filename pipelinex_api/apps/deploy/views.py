@@ -115,6 +115,23 @@ class RequestDetailView(View):
             response['h_actions'] = json.loads(req.deploy.extend_obj.host_actions)
             if not response['h_actions']:
                 response['outputs'] = {'local': outputs['local']}
+        elif req.deploy.extend == '3':
+            outputs['local'] = {'id': 'local', 'data': f'{human_time()} 读取数据...        '}
+            extend = req.deploy.extend_obj
+            s_actions = [{'title': '解析集群配置'}]
+            if extend.git_repo:
+                s_actions.extend([
+                    {'title': '拉取 Git 源码'},
+                    {'title': 'Docker 镜像构建'},
+                    {'title': '推送镜像仓库'}
+                ])
+            s_actions.extend([
+                {'title': '触发 K8s 升级'},
+                {'title': '滚动就绪检测'}
+            ])
+            response['s_actions'] = s_actions
+            response['h_actions'] = []
+            response['outputs'] = {'local': outputs['local']}
         rds, key, counter = get_redis_connection(), f'{settings.REQUEST_KEY}:{r_id}', 0
         data = rds.lrange(key, counter, counter + 9)
         while data:
@@ -179,6 +196,21 @@ class RequestDetailView(View):
             if not h_actions:
                 outputs = {'local': outputs['local']}
             return json_response({'s_actions': s_actions, 'h_actions': h_actions, 'outputs': outputs})
+        elif req.deploy.extend == '3':
+            outputs['local'] = {'id': 'local', 'step': 0, 'data': f'{human_time()} 建立连接...        '}
+            extend = req.deploy.extend_obj
+            s_actions = [{'title': '解析集群配置'}]
+            if extend.git_repo:
+                s_actions.extend([
+                    {'title': '拉取 Git 源码'},
+                    {'title': 'Docker 镜像构建'},
+                    {'title': '推送镜像仓库'}
+                ])
+            s_actions.extend([
+                {'title': '触发 K8s 升级'},
+                {'title': '滚动就绪检测'}
+            ])
+            return json_response({'s_actions': s_actions, 'h_actions': [], 'outputs': {'local': outputs['local']}})
         return json_response({'outputs': outputs})
 
     @auth('deploy.request.approve')
@@ -341,6 +373,69 @@ def post_request_ext2(request):
         form.name = form.name.replace("'", '')
         form.status = '0' if deploy.is_audit else '1'
         form.host_ids = json.dumps(form.host_ids)
+        if form.id:
+            req = DeployRequest.objects.get(pk=form.id)
+            is_required_notify = deploy.is_audit and req.status == '-1'
+            form.update(created_by=request.user, reason=None)
+            req.update_by_dict(form)
+        else:
+            req = DeployRequest.objects.create(created_by=request.user, **form)
+            is_required_notify = deploy.is_audit
+        if is_required_notify:
+            Thread(target=Helper.send_deploy_notify, args=(req, 'approve_req')).start()
+    return json_response(error=error)
+
+
+@auth('deploy.request.add|deploy.request.edit')
+def post_request_ext3(request):
+    form, error = JsonParser(
+        Argument('id', type=int, required=False),
+        Argument('deploy_id', type=int, help='缺少必要参数'),
+        Argument('name', help='请输入申请标题'),
+        Argument('extra', required=False),
+        Argument('version', default=''),
+        Argument('type', default='1'),
+        Argument('plan', required=False),
+        Argument('desc', required=False),
+    ).parse(request.body)
+    if error is None:
+        deploy = Deploy.objects.filter(pk=form.deploy_id).first()
+        if not deploy:
+            return json_response(error='未找到该发布配置')
+        extra = form.pop('extra')
+        
+        if deploy.extend_obj.git_repo:
+            if isinstance(extra, list):
+                if extra[0] == 'tag':
+                    if not extra[1]:
+                        return json_response(error='请选择要发布的版本')
+                    form.version = extra[1]
+                elif extra[0] == 'branch':
+                    if not extra[2]:
+                        return json_response(error='请选择要发布的分支及Commit ID')
+                    form.version = f'{extra[1]}#{extra[2][:6]}'
+                elif extra[0] == 'repository':
+                    if not extra[1]:
+                        return json_response(error='请选择要发布的版本')
+                    repository = Repository.objects.get(pk=extra[1])
+                    form.repository_id = repository.id
+                    form.version = repository.version
+                    form.spug_version = repository.spug_version
+                    extra = ['repository'] + json.loads(repository.extra)
+                else:
+                    return json_response(error='参数错误')
+                form.extra = json.dumps(extra)
+            else:
+                return json_response(error='请选择 Git 发布版本/分支')
+        else:
+            form.spug_version = Repository.make_spug_version(deploy.id)
+            if not form.version:
+                return json_response(error='未配置 Git，请输入需要发布的容器镜像 Tag')
+
+        form.name = form.name.replace("'", '')
+        form.status = '0' if deploy.is_audit else '1'
+        form.host_ids = '[]'
+        
         if form.id:
             req = DeployRequest.objects.get(pk=form.id)
             is_required_notify = deploy.is_audit and req.status == '-1'

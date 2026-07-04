@@ -4,7 +4,7 @@
 from django.views.generic import View
 from django.db.models import F
 from libs import JsonParser, Argument, json_response, auth
-from apps.app.models import App, Deploy, DeployExtend1, DeployExtend2
+from apps.app.models import App, Deploy, DeployExtend1, DeployExtend2, DeployExtend3
 from apps.config.models import Config, ConfigHistory, Service
 from apps.app.utils import fetch_versions, remove_repo
 from apps.setting.utils import AppSetting
@@ -185,6 +185,26 @@ class DeployView(View):
                 else:
                     deploy = Deploy.objects.create(created_by=request.user, **form)
                     DeployExtend2.objects.create(deploy=deploy, **extend_form)
+            elif form.extend == '3':
+                extend_form, error = JsonParser(
+                    Argument('workload_type', handler=str.strip, help='请选择工作负载类型'),
+                    Argument('workload_name', handler=str.strip, help='请输入工作负载名称'),
+                    Argument('container_name', handler=str.strip, help='请输入容器名称'),
+                    Argument('git_repo', handler=str.strip, required=False),
+                    Argument('image_repo', handler=str.strip, help='请输入镜像仓库地址')
+                ).parse(request.body)
+                if error:
+                    return json_response(error=error)
+                if form.id:
+                    extend = DeployExtend3.objects.filter(deploy_id=form.id).first()
+                    from apps.app.utils import remove_repo
+                    if extend and extend.git_repo != extend_form.git_repo:
+                        remove_repo(form.id)
+                    Deploy.objects.filter(pk=form.id).update(**form)
+                    DeployExtend3.objects.filter(deploy_id=form.id).update(**extend_form)
+                else:
+                    deploy = Deploy.objects.create(created_by=request.user, **form)
+                    DeployExtend3.objects.create(deploy=deploy, **extend_form)
         return json_response(error=error)
 
     @auth('deploy.app.del')
@@ -207,7 +227,7 @@ def get_versions(request, d_id):
     deploy = Deploy.objects.filter(pk=d_id).first()
     if not deploy:
         return json_response(error='未找到指定应用')
-    if deploy.extend == '2' and not getattr(deploy.extend_obj, 'git_repo', None):
+    if deploy.extend in ('2', '3') and not getattr(deploy.extend_obj, 'git_repo', None):
         return json_response(error='该应用未配置 Git 仓库地址')
     branches, tags = fetch_versions(deploy)
     return json_response({'branches': branches, 'tags': tags})

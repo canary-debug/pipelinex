@@ -39,6 +39,7 @@ class Deploy(models.Model, ModelMixin):
     EXTENDS = (
         ('1', '常规发布'),
         ('2', '自定义发布'),
+        ('3', 'K8s发布'),
     )
     app = models.ForeignKey(App, on_delete=models.PROTECT)
     env = models.ForeignKey(Environment, on_delete=models.PROTECT)
@@ -54,7 +55,12 @@ class Deploy(models.Model, ModelMixin):
 
     @property
     def extend_obj(self):
-        cls = DeployExtend1 if self.extend == '1' else DeployExtend2
+        if self.extend == '1':
+            cls = DeployExtend1
+        elif self.extend == '2':
+            cls = DeployExtend2
+        else:
+            cls = DeployExtend3
         return cls.objects.filter(deploy=self).first()
 
     def to_dict(self, *args, **kwargs):
@@ -123,3 +129,22 @@ class DeployExtend2(models.Model, ModelMixin):
 
     class Meta:
         db_table = 'deploy_extend2'
+
+
+class DeployExtend3(models.Model, ModelMixin):
+    deploy = models.OneToOneField(Deploy, primary_key=True, on_delete=models.CASCADE)
+    workload_type = models.CharField(max_length=50)
+    workload_name = models.CharField(max_length=255)
+    container_name = models.CharField(max_length=255)
+    git_repo = models.CharField(max_length=255, null=True)
+    image_repo = models.CharField(max_length=255)
+
+    def to_dict(self, *args, **kwargs):
+        return super().to_dict(*args, **kwargs)
+
+    def __repr__(self):
+        return '<DeployExtend3 deploy_id=%r>' % self.deploy_id
+
+    class Meta:
+        db_table = 'deploy_extend3'
+

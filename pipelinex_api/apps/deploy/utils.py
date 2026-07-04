@@ -57,8 +57,10 @@ def dispatch(req, fail_mode=False):
 
         if req.deploy.extend == '1':
             _ext1_deploy(req, helper, env)
-        else:
+        elif req.deploy.extend == '2':
             _ext2_deploy(req, helper, env)
+        else:
+            _k8s_deploy(req, helper, env)
         req.status = '3'
     except Exception as e:
         req.status = '-3'
@@ -351,7 +353,157 @@ def _deploy_ext2_host(helper, h_id, actions, env, spug_version):
                     command += f'&& rm -rf {action["dst"]} && mv /tmp/{spug_version}/{sd_dst} {action["dst"]} '
                     command += f'&& rm -rf /tmp/{spug_version}* && echo "transfer completed"'
             else:
-                command = f'cd /tmp && {action["data"]}'
+                 command = f'cd /tmp && {action["data"]}'
             helper.remote(host.id, ssh, command)
 
     helper.send_step(h_id, 100, f'\r\n{human_time()} ** \033[32m发布成功\033[0m **')
+
+
+# K8s 部署实现
+def _k8s_deploy(req, helper, env):
+    # FIX: 解决原 ext2 被误切断的 SyntaxError，确保 try 块闭合且将 K8s 发布逻辑优雅地追加至末尾
+    import yaml
+    from kubernetes import client, config
+    from libs.utils import decrypt_kubeconfig
+
+    extend = req.deploy.extend_obj
+    step = 1
+    
+    if not req.deploy.env.k8s_config:
+        raise Exception("当前环境未配置 Kubernetes (Kubeconfig) 凭证，请先在环境管理中进行配置")
+        
+    helper.send_step('local', step, f'{human_time()} 解析 K8s 集群配置...        ')
+    try:
+        kubeconfig_yaml = decrypt_kubeconfig(req.deploy.env.k8s_config)
+        kubeconfig_dict = yaml.safe_load(kubeconfig_yaml)
+        config.load_kube_config_from_dict(kubeconfig_dict)
+        k8s_apps_api = client.AppsV1Api()
+        helper.send_info('local', '\033[32m完成√\033[0m\r\n')
+    except Exception as e:
+        helper.send_error('local', f'解析 Kubeconfig 失败: {e}', True)
+        raise e
+        
+    step += 1
+    
+    image_tag = req.version if req.version else req.spug_version
+    final_image = f"{extend.image_repo}:{image_tag}"
+    
+    if extend.git_repo:
+        helper.send_step('local', step, f'{human_time()} 获取代码仓库...        ')
+        fetch_repo(req.deploy_id, extend.git_repo)
+        helper.send_info('local', '\033[32m完成√\033[0m\r\n')
+        
+        step += 1
+        helper.send_step('local', step, f'{human_time()} 开始构建 Docker 镜像...        ')
+        build_path = os.path.join(settings.REPOS_DIR, str(req.deploy_id))
+        build_cmd = f"docker build -t {final_image} ."
+        helper.send_info('local', f'执行命令: {build_cmd}\r\n')
+        
+        try:
+            process = subprocess.Popen(build_cmd, shell=True, cwd=build_path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            for line in iter(process.stdout.readline, b''):
+                helper.send_info('local', line.decode('utf-8', errors='ignore'))
+            process.stdout.close()
+            process.wait()
+            if process.returncode != 0:
+                raise Exception(f"Docker 镜像构建失败，错误码 {process.returncode}")
+            helper.send_info('local', '\033[32m镜像构建完成√\033[0m\r\n')
+        except Exception as e:
+            helper.send_error('local', f'构建镜像失败: {e}', True)
+            raise e
+            
+        step += 1
+        helper.send_step('local', step, f'{human_time()} 推送镜像到远程仓库...        ')
+        push_cmd = f"docker push {final_image}"
+        helper.send_info('local', f'执行命令: {push_cmd}\r\n')
+        try:
+            process = subprocess.Popen(push_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            for line in iter(process.stdout.readline, b''):
+                helper.send_info('local', line.decode('utf-8', errors='ignore'))
+            process.stdout.close()
+            process.wait()
+            if process.returncode != 0:
+                raise Exception(f"Docker 镜像推送失败，错误码 {process.returncode}")
+            helper.send_info('local', '\033[32m镜像推送完成√\033[0m\r\n')
+        except Exception as e:
+            helper.send_error('local', f'推送镜像失败: {e}', True)
+            raise e
+            
+        step += 1
+
+    helper.send_step('local', step, f'{human_time()} 触发 K8s 滚动部署 ({extend.workload_type})...        ')
+    try:
+        namespace = req.deploy.env.key
+        if extend.workload_type.lower() == 'deployment':
+            dep = k8s_apps_api.read_namespaced_deployment(name=extend.workload_name, namespace=namespace)
+            found = False
+            for container in dep.spec.template.spec.containers:
+                if container.name == extend.container_name:
+                    container.image = final_image
+                    found = True
+                    break
+            if not found:
+                raise Exception(f"在工作负载 {extend.workload_name} 中未找到容器: {extend.container_name}")
+                
+            k8s_apps_api.patch_namespaced_deployment(name=extend.workload_name, namespace=namespace, body=dep)
+        elif extend.workload_type.lower() == 'statefulset':
+            sts = k8s_apps_api.read_namespaced_stateful_set(name=extend.workload_name, namespace=namespace)
+            found = False
+            for container in sts.spec.template.spec.containers:
+                if container.name == extend.container_name:
+                    container.image = final_image
+                    found = True
+                    break
+            if not found:
+                raise Exception(f"在工作负载 {extend.workload_name} 中未找到容器: {extend.container_name}")
+                
+            k8s_apps_api.patch_namespaced_stateful_set(name=extend.workload_name, namespace=namespace, body=sts)
+        else:
+            raise Exception(f"不支持的 K8s 工作负载类型: {extend.workload_type}")
+            
+        helper.send_info('local', '\033[32mPatch 发送成功√\033[0m\r\n')
+    except Exception as e:
+        helper.send_error('local', f'更新 K8s 负载失败: {e}', True)
+        raise e
+
+    step += 1
+    
+    helper.send_step('local', step, f'{human_time()} 等待 K8s 滚动升级就绪检测...        \r\n')
+    import time
+    max_wait = 300
+    check_interval = 5
+    elapsed = 0
+    try:
+        while elapsed < max_wait:
+            time.sleep(check_interval)
+            elapsed += check_interval
+            
+            if extend.workload_type.lower() == 'deployment':
+                status = k8s_apps_api.read_namespaced_deployment_status(name=extend.workload_name, namespace=namespace)
+                replicas = status.status.replicas or 0
+                updated_replicas = status.status.updated_replicas or 0
+                available_replicas = status.status.available_replicas or 0
+                
+                log_msg = f"检测进度: 当前副本数 {replicas}，更新就绪副本数 {updated_replicas}，可用副本数 {available_replicas}\r\n"
+                helper.send_info('local', log_msg)
+                
+                if updated_replicas == replicas and available_replicas == replicas:
+                    helper.send_info('local', '\033[32mK8s 部署升级全部就绪成功√\033[0m\r\n')
+                    break
+            elif extend.workload_type.lower() == 'statefulset':
+                status = k8s_apps_api.read_namespaced_stateful_set_status(name=extend.workload_name, namespace=namespace)
+                replicas = status.status.replicas or 0
+                updated_replicas = status.status.updated_replicas or 0
+                ready_replicas = status.status.ready_replicas or 0
+                
+                log_msg = f"检测进度: 当前副本数 {replicas}，更新副本数 {updated_replicas}，就绪副本数 {ready_replicas}\r\n"
+                helper.send_info('local', log_msg)
+                
+                if updated_replicas == replicas and ready_replicas == replicas:
+                    helper.send_info('local', '\033[32mK8s 部署升级全部就绪成功√\033[0m\r\n')
+                    break
+        else:
+            raise Exception("K8s 滚动发布超时，请检查 Pod 启动日志是否有异常。")
+    except Exception as e:
+        helper.send_error('local', f'就绪检测阶段发生异常: {e}', True)
+        raise e
