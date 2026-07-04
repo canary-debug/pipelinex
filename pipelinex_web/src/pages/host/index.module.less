@@ -1,0 +1,96 @@
+.steps {
+  width: 350px;
+  margin: 0 auto 30px;
+}
+
+.tagAdd {
+  background: #fff;
+  border-style: dashed;
+}
+
+.tagNumberInput {
+  width: 78px;
+  margin-right: 8px;
+  vertical-align: top;
+}
+
+.tagInput {
+  width: 140px;
+  margin-right: 8px;
+  vertical-align: top;
+}
+
+.hostExtendEdit {
+  :global(.ant-descriptions-item-content) {
+    padding: 4px 16px !important;
+  }
+}
+
+.formAddress1 {
+  display: inline-block;
+
+  :global(.ant-input) {
+    border-radius: 0;
+  }
+}
+
+.formAddress2 {
+  display: inline-block;
+
+  :global(.ant-input-group-addon) {
+    border-left: none;
+    border-radius: 0;
+  }
+
+  :global(.ant-input) {
+    border-radius: 0;
+  }
+}
+
+.formAddress3 {
+  display: inline-block;
+
+  :global(.ant-input-group-addon) {
+    border-left: none;
+    border-radius: 0;
+  }
+}
+
+.group {
+  height: 100%;
+}
+
+.treeNode {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .title {
+    margin-left: 8px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .number {
+    width: 30px;
+    text-align: right;
+  }
+}
+
+.batchSync {
+  max-height: calc(100vh - 300px);
+  overflow: auto;
+
+  :global(.ant-form-item) {
+    margin-bottom: 4px;
+  }
+
+  :global(.ant-form-item-extra) {
+    padding-top: 0;
+  }
+}

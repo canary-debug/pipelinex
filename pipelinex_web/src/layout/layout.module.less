@@ -1,0 +1,148 @@
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 0 12px 0 0;;
+  height: 48px;
+  line-height: 48px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  z-index: 2;
+
+  .right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    .link {
+      color: #333333;
+      cursor: pointer;
+      padding: 0 16px;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.025);
+      }
+    }
+  }
+
+  .terminal {
+    padding: 0 12px;
+    cursor: pointer;
+    line-height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.025);
+    }
+  }
+
+  .user {
+    .action {
+      cursor: pointer;
+      padding: 0 12px;
+      display: inline-block;
+      transition: all 0.3s;
+      height: 100%;
+    }
+
+    .action:hover {
+      background: rgba(0, 0, 0, 0.025);
+    }
+  }
+
+  .trigger {
+    cursor: pointer;
+    transition: all 0.3s, padding 0s;
+    padding: 0 12px;
+  }
+
+  .trigger:hover {
+    background: rgba(0, 0, 0, 0.025);
+  }
+}
+
+.notify {
+  width: 350px;
+  padding: 0;
+
+  .item {
+    align-items: center;
+    cursor: pointer;
+    padding: 12px 24px;
+  }
+
+  .item:hover {
+    background-color: rgb(233, 247, 254);
+  }
+
+  .btn {
+    line-height: 46px;
+    text-align: center;
+    cursor: pointer;
+    border-top: 1px solid #e8e8e8;
+  }
+}
+
+.notify :global(.ant-dropdown-menu-item:hover) {
+  background-color: #fff;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px;
+  overflow-y: scroll;
+}
+
+.content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.sider {
+  height: 100%;
+  width: 208px;
+  min-height: 100vh;
+  box-shadow: 2px 0 8px 0 rgba(29, 35, 41, 0.05);
+  overflow: hidden;
+
+  .menus {
+    overflow: auto;
+  }
+
+  .menus::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .logo {
+    height: 64px;
+    line-height: 64px;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  .logo img {
+    height: 30px;
+  }
+}
+
+.footer {
+  width: 100%;
+  padding: 20px;
+  font-size: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+
+  .links {
+    margin-bottom: 7px;
+
+    .item {
+      margin-right: 40px;
+    }
+  }
+}
