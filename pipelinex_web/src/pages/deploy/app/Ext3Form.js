@@ -93,11 +93,12 @@ export default observer(function Ext3Form() {
         <Form.Item required name="container_name" label="容器名称">
           <Input disabled={store.isReadOnly} placeholder="请输入容器名称，例如：order-container"/>
         </Form.Item>
+        
+        <Form.Item required name="image_repo" label="镜像仓库地址" tooltip="请输入镜像仓库地址（不需要包含 tag 标签）。例如：registry.cn-hangzhou.aliyuncs.com/mycorp/order-service">
+          <Input disabled={store.isReadOnly} placeholder="请输入镜像仓库地址，不需要包含 tag 标签"/>
+        </Form.Item>
         <Form.Item name="git_repo" label="Git仓库地址" extra={<span className="btn" onClick={() => setRepoVisible(true)}>私有仓库？</span>}>
           <Input disabled={store.isReadOnly} placeholder="可选，若需要拉取代码构建镜像并推送，请输入Git仓库地址。"/>
-        </Form.Item>
-        <Form.Item required name="image_repo" label="镜像仓库地址" extra="例如：registry.cn-hangzhou.aliyuncs.com/mycorp/order-service">
-          <Input disabled={store.isReadOnly} placeholder="请输入镜像仓库地址，不需要包含 tag 标签"/>
         </Form.Item>
         <Form.Item name="is_audit" label="发布审核" valuePropName="checked" tooltip="开启后发布申请需要审批通过后才能发布。">
           <Switch disabled={store.isReadOnly} checkedChildren="开启" unCheckedChildren="关闭"/>
