@@ -387,6 +387,8 @@ def _k8s_deploy(req, helper, env):
     step += 1
     
     image_tag = req.version if req.version else req.spug_version
+    if image_tag and '#' in image_tag:
+        image_tag = image_tag.replace('#', '-')
     final_image = f"{extend.image_repo}:{image_tag}"
     
     if extend.git_repo:
