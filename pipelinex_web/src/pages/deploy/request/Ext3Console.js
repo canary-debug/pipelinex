@@ -134,22 +134,21 @@ function Ext3Console(props) {
         ]}>
         <Skeleton loading={fetching} active>
           {sActions.length > 0 && (
-            <Collapse defaultActiveKey={['0']} className={styles.collapse}>
-              <Collapse.Panel header={(
-                <div className={styles.header}>
-                  <b className={styles.title}/>
-                  <Steps size="small" className={styles.step} current={outputs.local.step}
-                         status={outputs.local.status}>
-                    <StepItem title="建立连接" item={outputs.local} step={0}/>
-                    {sActions.map((item, index) => (
-                      <StepItem key={index} title={item.title} item={outputs.local} step={index + 1}/>
-                    ))}
-                  </Steps>
-                </div>
-              )}>
-                <OutView setTerm={term => handleSetTerm(term, 'local')}/>
-              </Collapse.Panel>
-            </Collapse>
+            <div style={{ padding: '0 8px' }}>
+              <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #f0f0f0' }}>
+                <Steps size="small" current={outputs.local.step} status={outputs.local.status}>
+                  <StepItem title="建立连接" item={outputs.local} step={0}/>
+                  {sActions.map((item, index) => (
+                    <StepItem key={index} title={item.title} item={outputs.local} step={index + 1}/>
+                  ))}
+                </Steps>
+              </div>
+              <Collapse defaultActiveKey={['0']} className={styles.collapse}>
+                <Collapse.Panel header={<b>K8s 构建部署执行日志</b>}>
+                  <OutView setTerm={term => handleSetTerm(term, 'local')}/>
+                </Collapse.Panel>
+              </Collapse>
+            </div>
           )}
         </Skeleton>
       </Modal>
