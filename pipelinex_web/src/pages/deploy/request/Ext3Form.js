@@ -39,6 +39,14 @@ export default observer(function Ext3Form() {
   const [repositories, setRepositories] = useState([]);
 
   useEffect(() => {
+    const deploy_id = store.record.deploy_id;
+    http.get('/api/app/deploy/', {params: {id: deploy_id}})
+      .then(res => {
+        const deploy = lds.find(res, x => x.id === deploy_id);
+        if (deploy) {
+          setGitRepo(deploy.git_repo);
+        }
+      });
     fetchVersions()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

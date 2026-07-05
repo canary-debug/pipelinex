@@ -49,7 +49,17 @@ class Git:
             kwargs.update(P=True)
         try:
             self.repo.remotes.origin.fetch(**kwargs)
-        except GitCommandError as e:
+        except (GitCommandError, AssertionError) as e:
+            if 'has no refspec set' in str(e):
+                try:
+                    self.repo.git.config('--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*')
+                    if self.env:
+                        self.repo.remotes.origin.fetch(env=self.env, **kwargs)
+                    else:
+                        self.repo.remotes.origin.fetch(**kwargs)
+                    return
+                except Exception:
+                    pass
             if self.env:
                 self.repo.remotes.origin.fetch(env=self.env, **kwargs)
             else:

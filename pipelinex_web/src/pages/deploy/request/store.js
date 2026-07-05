@@ -98,8 +98,8 @@ class Store {
   };
 
   confirmAdd = (deploy) => {
-    const {id, host_ids, require_upload} = deploy;
-    this.record = {deploy_id: id, app_host_ids: host_ids, require_upload};
+    const {id, host_ids, require_upload, git_repo} = deploy;
+    this.record = {deploy_id: id, app_host_ids: host_ids, require_upload, git_repo};
     if (deploy.extend === '1') {
       this.ext1Visible = true
     } else if (deploy.extend === '2') {
