@@ -17,6 +17,7 @@ from functools import partial
 import json
 import uuid
 import os
+import subprocess
 
 REPOS_DIR = settings.REPOS_DIR
 BUILD_DIR = settings.BUILD_DIR
