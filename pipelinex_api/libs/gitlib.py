@@ -60,10 +60,18 @@ class Git:
                     return
                 except Exception:
                     pass
-            if self.env:
-                self.repo.remotes.origin.fetch(env=self.env, **kwargs)
-            else:
-                raise e
+            # 终极自愈：若仍然报错，直接物理删除整个损坏的本地 Git 目录并重新 clone
+            try:
+                if os.path.exists(self.repo_dir):
+                    shutil.rmtree(self.repo_dir, ignore_errors=True)
+                self.repo = self._get_repo()
+                if self.env:
+                    self.repo.remotes.origin.fetch(env=self.env, **kwargs)
+                else:
+                    self.repo.remotes.origin.fetch(**kwargs)
+                return
+            except Exception as clone_err:
+                raise clone_err
 
     def _get_repo(self):
         if os.path.exists(self.repo_dir):
@@ -108,6 +116,8 @@ class Git:
             self.fd.write(self.pkey.encode())
             self.fd.flush()
             self.env = {'GIT_SSH_COMMAND': f'ssh -o StrictHostKeyChecking=no -i {self.fd.name}'}
+        else:
+            self.env = {'GIT_SSH_COMMAND': 'ssh -o StrictHostKeyChecking=no'}
         self.repo = self._get_repo()
         return self
 

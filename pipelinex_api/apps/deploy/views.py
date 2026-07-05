@@ -392,7 +392,7 @@ def post_request_ext3(request):
         Argument('id', type=int, required=False),
         Argument('deploy_id', type=int, help='缺少必要参数'),
         Argument('name', help='请输入申请标题'),
-        Argument('extra', required=False),
+        Argument('extra', type=list, required=False),
         Argument('version', default=''),
         Argument('type', default='1'),
         Argument('plan', required=False),

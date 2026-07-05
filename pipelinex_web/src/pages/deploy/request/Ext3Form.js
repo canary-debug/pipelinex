@@ -7,9 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
 import { SyncOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Modal, Form, Input, DatePicker, message, Button, Select } from 'antd';
-import { http, history } from 'libs';
+import { http, history, includes } from 'libs';
 import store from './store';
 import lds from 'lodash';
+import moment from 'moment';
 
 function NoVersions() {
   return (
@@ -170,67 +171,78 @@ export default observer(function Ext3Form() {
         )}
         {gitRepo && (
           <>
-            <Form.Item required label="选择版本" style={{marginBottom: 12}} extra={<span>
-                从 Git 拉取版本可能需要些时间，请耐心等待。
+            <Form.Item required label="选择分支/标签/版本" style={{marginBottom: 12}} extra={<span>
+                根据网络情况，首次刷新可能会很慢，请耐心等待。
+                <a target="_blank" rel="noopener noreferrer"
+                   href="https://ops.spug.cc/docs/use-problem#clone">clone 失败？</a>
               </span>}>
-              <Input.Group compact>
-                <Select value={git_type} style={{width: 100}} onChange={switchType}>
-                  <Select.Option value="branch">分支</Select.Option>
-                  <Select.Option value="tag">标签</Select.Option>
-                  <Select.Option value="repository">构建版本</Select.Option>
-                </Select>
-                {git_type === 'branch' && (
-                  <>
-                    <Select
-                      showSearch
-                      value={extra1}
-                      style={{width: 240}}
-                      placeholder="选择分支"
-                      onChange={switchExtra1}>
-                      {Object.keys(branches || {}).map(item => (
-                        <Select.Option key={item} value={item}>{item}</Select.Option>
-                      ))}
-                    </Select>
-                    <Select
-                      value={extra2}
-                      style={{width: 'calc(100% - 340px)'}}
-                      placeholder="选择提交"
-                      onChange={v => setExtra2(v)}>
-                      {(lds.get(branches, extra1) || []).map(item => (
-                        <Select.Option key={item.id} value={item.id}>{item.author}: {item.message}</Select.Option>
-                      ))}
-                    </Select>
-                  </>
-                )}
-                {git_type === 'tag' && (
+              <Form.Item style={{display: 'inline-block', marginBottom: 0, width: '450px'}}>
+                <Input.Group compact>
+                  <Select value={git_type} onChange={switchType} style={{width: 100}}>
+                    <Select.Option value="branch">Branch</Select.Option>
+                    <Select.Option value="tag">Tag</Select.Option>
+                    <Select.Option value="repository">构建版本</Select.Option>
+                  </Select>
                   <Select
                     showSearch
+                    style={{width: 350}}
                     value={extra1}
-                    style={{width: 'calc(100% - 100px)'}}
-                    placeholder="选择标签"
-                    onChange={v => setExtra1(v)}>
-                    {Object.keys(tags || {}).map(item => (
-                      <Select.Option key={item} value={item}>{item}</Select.Option>
-                    ))}
+                    placeholder="请稍等"
+                    onChange={switchExtra1}
+                    notFoundContent={git_type === 'repository' ? <NoVersions/> : undefined}
+                    filterOption={(input, option) => includes(option.content, input)}>
+                    {git_type === 'branch' ? (
+                      Object.keys(branches || {}).map(b => (
+                        <Select.Option key={b} value={b} content={b}>{b}</Select.Option>
+                      ))
+                    ) : git_type === 'tag' ? (
+                      Object.entries(tags || {}).map(([tag, info]) => (
+                        <Select.Option key={tag} value={tag} content={`${tag} ${info.author} ${info.message}`}>
+                          <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                            <span style={{
+                              width: 200,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}>{`${tag} ${info.author} ${info.message}`}</span>
+                            <span style={{color: '#999', fontSize: 12}}>{info['date']} </span>
+                          </div>
+                        </Select.Option>
+                      ))
+                    ) : (
+                      repositories.map(item => (
+                        <Select.Option key={item.id} value={item.id} content={item.version}>
+                          <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                            <span>{item.version}</span>
+                            <span style={{color: '#999', fontSize: 12}}>构建于 {moment(item.created_at).fromNow()}</span>
+                          </div>
+                        </Select.Option>
+                      ))
+                    )}
                   </Select>
-                )}
-                {git_type === 'repository' && (
-                  <Select
-                    value={extra1}
-                    style={{width: 'calc(100% - 100px)'}}
-                    placeholder="选择构建版本"
-                    notFoundContent={<NoVersions/>}
-                    onChange={v => setExtra1(v)}>
-                    {repositories.map(item => (
-                      <Select.Option key={item.id} value={item.id}>{item.version} ({item.created_at})</Select.Option>
-                    ))}
-                  </Select>
-                )}
-              </Input.Group>
+                </Input.Group>
+              </Form.Item>
+              <Form.Item style={{display: 'inline-block', width: 82, textAlign: 'center', marginBottom: 0}}>
+                {fetching ? <LoadingOutlined style={{fontSize: 18, color: '#1890ff'}}/> :
+                  <Button type="link" icon={<SyncOutlined/>} disabled={fetching} onClick={fetchVersions}>刷新</Button>
+                }
+              </Form.Item>
             </Form.Item>
-            {fetching && (
-              <Form.Item wrapperCol={{span: 17, offset: 5}} style={{marginBottom: 12}}>
-                <LoadingOutlined/> 正在从 Git 获取分支与标签...
+            {git_type === 'branch' && (
+              <Form.Item required label="选择Commit ID">
+                <Select value={extra2} placeholder="请选择" onChange={v => setExtra2(v)}>
+                  {extra1 && branches ? branches[extra1].map(item => (
+                    <Select.Option key={item.id} value={item.id}>
+                      <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                        <span style={{
+                          width: 400,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>{item.author}: {item.message}</span>
+                        <span style={{color: '#999', fontSize: 12}}>{item.date}</span>
+                      </div>
+                    </Select.Option>
+                  )) : null}
+                </Select>
               </Form.Item>
             )}
             {!fetching && lds.isEmpty(versions.branches) && (
