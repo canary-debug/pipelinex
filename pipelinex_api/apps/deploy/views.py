@@ -429,8 +429,8 @@ def post_request_ext3(request):
                 return json_response(error='请选择 Git 发布版本/分支')
         else:
             form.spug_version = Repository.make_spug_version(deploy.id)
-            if not form.version:
-                return json_response(error='未配置 Git，请输入需要发布的容器镜像 Tag')
+            if not form.version or form.version.strip() == '':
+                return json_response(error='未配置 Git 仓库，请指定需要在 K8s 部署的已存在容器镜像 Tag')
 
         form.name = form.name.replace("'", '')
         form.status = '0' if deploy.is_audit else '1'

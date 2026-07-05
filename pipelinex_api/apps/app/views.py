@@ -230,10 +230,11 @@ def get_versions(request, d_id):
     deploy = Deploy.objects.filter(pk=d_id).first()
     if not deploy:
         return json_response(error='未找到指定应用')
-    if deploy.extend in ('2', '3') and not getattr(deploy.extend_obj, 'git_repo', None):
-        return json_response(error='该应用未配置 Git 仓库地址')
+    git_repo = getattr(deploy.extend_obj, 'git_repo', None)
+    if not git_repo:
+        return json_response({'branches': {}, 'tags': {}, 'git_repo': None})
     branches, tags = fetch_versions(deploy)
-    return json_response({'branches': branches, 'tags': tags})
+    return json_response({'branches': branches, 'tags': tags, 'git_repo': git_repo})
 
 
 @auth('deploy.app.config|deploy.app.edit')

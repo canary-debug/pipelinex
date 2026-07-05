@@ -30,6 +30,7 @@ export default observer(function Ext3Form() {
   const [plan, setPlan] = useState(store.record.plan);
 
   const [fetching, setFetching] = useState(false);
+  const [gitRepo, setGitRepo] = useState(store.record.git_repo);
   const [git_type, setGitType] = useState();
   const [extra, setExtra] = useState([]);
   const [extra1, setExtra1] = useState();
@@ -38,10 +39,7 @@ export default observer(function Ext3Form() {
   const [repositories, setRepositories] = useState([]);
 
   useEffect(() => {
-    const {git_repo} = store.record;
-    if (git_repo) {
-      fetchVersions()
-    }
+    fetchVersions()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -52,7 +50,12 @@ export default observer(function Ext3Form() {
     const p2 = http.get('/api/repository/', {params: {deploy_id}})
     Promise.all([p1, p2])
       .then(([res1, res2]) => {
-        if (!versions.branches) _initial(res1, res2)
+        if (res1 && res1.hasOwnProperty('git_repo')) {
+          setGitRepo(res1.git_repo);
+        }
+        if (res1 && res1.git_repo && !versions.branches) {
+          _initial(res1, res2)
+        }
         setVersions(res1)
         setRepositories(res2)
       })
@@ -122,7 +125,7 @@ export default observer(function Ext3Form() {
     formData['deploy_id'] = store.record.deploy_id;
     if (plan) formData.plan = plan.format('YYYY-MM-DD HH:mm:00');
     
-    if (store.record.git_repo) {
+    if (gitRepo) {
       formData['extra'] = [git_type, extra1, extra2];
     }
 
@@ -134,7 +137,6 @@ export default observer(function Ext3Form() {
       }, () => setLoading(false))
   }
 
-  const {git_repo} = store.record;
   const {branches, tags} = versions;
   return (
     <Modal
@@ -149,16 +151,16 @@ export default observer(function Ext3Form() {
         <Form.Item required name="name" label="申请标题">
           <Input placeholder="请输入发布申请标题"/>
         </Form.Item>
-        {!git_repo && (
+        {!gitRepo && (
           <Form.Item
             required
             name="version"
             label="发布镜像 Tag"
-            tooltip="请输入要发布的容器镜像标签，例如：v1.0.0。由于没有配置 Git，发布镜像 Tag 为必填项。">
-            <Input placeholder="请输入要发布的容器镜像标签 tag"/>
+            tooltip="请输入要在 K8s 部署的容器镜像标签（例如：v1.0.0）。由于此应用发布未配置 Git 仓库，系统无法自动构建，因此必须指定一个已经推送在远程仓库的真实镜像标签来触发 K8s 滚动更新。">
+            <Input placeholder="请输入已在镜像仓库中存在的 Tag，例如：v1.0.0"/>
           </Form.Item>
         )}
-        {git_repo && (
+        {gitRepo && (
           <>
             <Form.Item required label="选择版本" style={{marginBottom: 12}} extra={<span>
                 从 Git 拉取版本可能需要些时间，请耐心等待。
