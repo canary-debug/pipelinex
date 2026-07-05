@@ -134,6 +134,7 @@ class DeployExtend2(models.Model, ModelMixin):
 class DeployExtend3(models.Model, ModelMixin):
     deploy = models.OneToOneField(Deploy, primary_key=True, on_delete=models.CASCADE)
     workload_type = models.CharField(max_length=50)
+    workload_namespace = models.CharField(max_length=255, default='default')
     workload_name = models.CharField(max_length=255)
     container_name = models.CharField(max_length=255)
     git_repo = models.CharField(max_length=255, null=True)

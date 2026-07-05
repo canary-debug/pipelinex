@@ -433,7 +433,7 @@ def _k8s_deploy(req, helper, env):
 
     helper.send_step('local', step, f'{human_time()} 触发 K8s 滚动部署 ({extend.workload_type})...        ')
     try:
-        namespace = req.deploy.env.key
+        namespace = extend.workload_namespace if getattr(extend, 'workload_namespace', None) else 'default'
         if extend.workload_type.lower() == 'deployment':
             dep = k8s_apps_api.read_namespaced_deployment(name=extend.workload_name, namespace=namespace)
             found = False

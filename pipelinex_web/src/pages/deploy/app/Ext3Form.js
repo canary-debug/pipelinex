@@ -87,6 +87,9 @@ export default observer(function Ext3Form() {
             <Radio.Button value="StatefulSet">StatefulSet</Radio.Button>
           </Radio.Group>
         </Form.Item>
+        <Form.Item required name="workload_namespace" label="命名空间" initialValue="default" tooltip="该应用在 Kubernetes 集群中部署所处的命名空间 (Namespace)，默认值为 default。">
+          <Input disabled={store.isReadOnly} placeholder="请输入命名空间，例如：default"/>
+        </Form.Item>
         <Form.Item required name="workload_name" label="工作负载名称">
           <Input disabled={store.isReadOnly} placeholder="请输入 Kubernetes 工作负载名称，例如：order-service"/>
         </Form.Item>

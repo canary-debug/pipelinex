@@ -188,6 +188,7 @@ class DeployView(View):
             elif form.extend == '3':
                 extend_form, error = JsonParser(
                     Argument('workload_type', handler=str.strip, help='请选择工作负载类型'),
+                    Argument('workload_namespace', handler=str.strip, default='default'),
                     Argument('workload_name', handler=str.strip, help='请输入工作负载名称'),
                     Argument('container_name', handler=str.strip, help='请输入容器名称'),
                     Argument('git_repo', handler=str.strip, required=False),

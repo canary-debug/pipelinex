@@ -47,7 +47,7 @@ export default observer(function () {
           extra="可以由字母、数字和下划线组成。">
           <Input placeholder="请输入唯一标识符，例如：dev"/>
         </Form.Item>
-        <Form.Item name="k8s_config" label="Kubeconfig" extra="如果此环境启用 Kubernetes 发布，请粘贴集群的 kubeconfig 凭证。强烈建议在本地将其转换为 Base64 编码文本（单行乱码）后再粘贴至此，以防止屏幕明文泄露。">
+        <Form.Item name="k8s_config" tooltip="Kubernetes集群配置文件内容" label="Kubeconfig" extra="如果此环境启用 Kubernetes 发布，请粘贴集群的 kubeconfig 凭证。强烈建议在本地将其转换为 Base64 编码文本（单行乱码）后再粘贴至此，以防止屏幕明文泄露。">
           <Input.TextArea rows={6} placeholder="请输入 Kubeconfig 凭证内容 (支持 YAML 明文或 Base64 混淆文本)"/>
         </Form.Item>
         <Form.Item name="desc" label="备注信息">
@@ -56,4 +56,4 @@ export default observer(function () {
       </Form>
     </Modal>
   )
-})
+})
