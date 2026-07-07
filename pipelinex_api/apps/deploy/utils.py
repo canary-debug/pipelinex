@@ -461,6 +461,18 @@ def _k8s_deploy(req, helper, env):
                 raise Exception(f"在工作负载 {extend.workload_name} 中未找到容器: {extend.container_name}")
                 
             k8s_apps_api.patch_namespaced_stateful_set(name=extend.workload_name, namespace=namespace, body=sts)
+        elif extend.workload_type.lower() == 'daemonset':
+            ds = k8s_apps_api.read_namespaced_daemon_set(name=extend.workload_name, namespace=namespace)
+            found = False
+            for container in ds.spec.template.spec.containers:
+                if container.name == extend.container_name:
+                    container.image = final_image
+                    found = True
+                    break
+            if not found:
+                raise Exception(f"在工作负载 {extend.workload_name} 中未找到容器: {extend.container_name}")
+                
+            k8s_apps_api.patch_namespaced_daemon_set(name=extend.workload_name, namespace=namespace, body=ds)
         else:
             raise Exception(f"不支持的 K8s 工作负载类型: {extend.workload_type}")
             
@@ -503,6 +515,18 @@ def _k8s_deploy(req, helper, env):
                 helper.send_info('local', log_msg)
                 
                 if updated_replicas == replicas and ready_replicas == replicas:
+                    helper.send_info('local', '\033[32mK8s 部署升级全部就绪成功√\033[0m\r\n')
+                    break
+            elif extend.workload_type.lower() == 'daemonset':
+                status = k8s_apps_api.read_namespaced_daemon_set_status(name=extend.workload_name, namespace=namespace)
+                desired = status.status.desired_number_scheduled or 0
+                updated = status.status.updated_number_scheduled or 0
+                ready = status.status.number_ready or 0
+                
+                log_msg = f"检测进度: 当前期望节点数 {desired}，更新节点数 {updated}，就绪节点数 {ready}\r\n"
+                helper.send_info('local', log_msg)
+                
+                if updated == desired and ready == desired:
                     helper.send_info('local', '\033[32mK8s 部署升级全部就绪成功√\033[0m\r\n')
                     break
         else:

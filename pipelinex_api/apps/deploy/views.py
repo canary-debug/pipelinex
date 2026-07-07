@@ -180,7 +180,13 @@ class RequestDetailView(View):
         req.do_at = human_datetime()
         req.do_by = request.user
         req.save()
-        Thread(target=dispatch, args=(req, form.mode == 'fail')).start()
+        import importlib
+        from apps.deploy import utils
+        try:
+            importlib.reload(utils)
+        except Exception:
+            pass
+        Thread(target=utils.dispatch, args=(req, form.mode == 'fail')).start()
         if req.is_quick_deploy:
             if req.repository_id:
                 outputs['local'] = {'id': 'local', 'step': 100, 'data': f'{human_time()} 已构建完成忽略执行。'}
