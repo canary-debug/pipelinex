@@ -27,6 +27,12 @@ import styles from './index.module.less';
 
 function Index() {
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const envId = params.get('env_id');
+    const appId = params.get('app_id');
+    if (envId) store.f_env_id = parseInt(envId, 10) || undefined;
+    if (appId) store.f_app_id = parseInt(appId, 10) || undefined;
+
     store.fetchRecords()
     if (envStore.records.length === 0) envStore.fetchRecords()
     if (appStore.records.length === 0) appStore.fetchRecords()
