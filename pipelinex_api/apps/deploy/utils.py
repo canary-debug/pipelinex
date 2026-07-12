@@ -394,6 +394,25 @@ def _k8s_deploy(req, helper, env):
     if extend.git_repo:
         helper.send_step('local', step, f'{human_time()} 获取代码仓库...        ')
         fetch_repo(req.deploy_id, extend.git_repo)
+        
+        import json
+        from apps.setting.utils import AppSetting
+        from libs.gitlib import Git
+        repo_dir = os.path.join(settings.REPOS_DIR, str(req.deploy_id))
+        pkey = AppSetting.get_default('private_key')
+        
+        extras = json.loads(req.extra)
+        if extras[0] == 'repository':
+            extras = extras[1:]
+        if extras[0] == 'branch':
+            tree_ish = extras[2] if len(extras) > 2 else f'origin/{extras[1]}'
+        else:
+            tree_ish = extras[1]
+            
+        with Git(extend.git_repo, repo_dir, pkey) as git:
+            git.repo.git.clean('-fdx')
+            git.repo.git.reset('--hard', tree_ish)
+            
         helper.send_info('local', '\033[32m完成√\033[0m\r\n')
         
         step += 1
