@@ -15,6 +15,8 @@ from django.conf import settings
 from libs import AttrDict, human_datetime
 import logging
 import json
+import redis
+import time
 
 SCHEDULE_WORKER_KEY = settings.SCHEDULE_WORKER_KEY
 
@@ -98,18 +100,30 @@ class Scheduler:
         rds_cli.delete(settings.SCHEDULE_KEY)
         logging.warning('Running scheduler')
         while True:
-            _, data = rds_cli.brpop(settings.SCHEDULE_KEY)
-            task = AttrDict(json.loads(data))
-            if task.action in ('add', 'modify'):
-                trigger = self.parse_trigger(task.trigger, task.trigger_args)
-                self.scheduler.add_job(
-                    self._dispatch,
-                    trigger,
-                    id=str(task.id),
-                    args=(task.id, task.interpreter, task.command, task.targets),
-                    replace_existing=True
-                )
-            elif task.action == 'remove':
-                job = self.scheduler.get_job(str(task.id))
-                if job:
-                    job.remove()
+            try:
+                # 设定 30 秒超时以防长久没有定时申请导致的 socket 读超时崩溃
+                res = rds_cli.brpop(settings.SCHEDULE_KEY, timeout=30)
+                if not res:
+                    continue
+                _, data = res
+                task = AttrDict(json.loads(data))
+                if task.action in ('add', 'modify'):
+                    trigger = self.parse_trigger(task.trigger, task.trigger_args)
+                    self.scheduler.add_job(
+                        self._dispatch,
+                        trigger,
+                        id=str(task.id),
+                        args=(task.id, task.interpreter, task.command, task.targets),
+                        replace_existing=True
+                    )
+                elif task.action == 'remove':
+                    job = self.scheduler.get_job(str(task.id))
+                    if job:
+                        job.remove()
+            except (TimeoutError, redis.exceptions.TimeoutError):
+                # 忽略 Redis 读取超时，继续循环监听
+                continue
+            except redis.exceptions.ConnectionError:
+                # 忽略连接错误，防止未开启 Redis 瞬间奔溃，5秒后重试
+                time.sleep(5)
+                continue

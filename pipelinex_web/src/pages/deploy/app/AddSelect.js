@@ -237,7 +237,7 @@ export default observer(function AddSelect() {
               <Select placeholder="选择要部署的目标发布环境">
                 {envStore.records.map(item => (
                   <Select.Option disabled={configuredEnvIds.includes(item.id)} value={item.id} key={item.id}>
-                    {item.name} {item.has_k8s_config ? ' (已配置 K8s)' : ' (未配置 K8s)'}
+                    {item.name}
                   </Select.Option>
                 ))}
               </Select>

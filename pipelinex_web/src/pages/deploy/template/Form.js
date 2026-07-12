@@ -29,15 +29,24 @@ export default observer(function TemplateForm() {
     store.configData.host_actions ? JSON.stringify(store.configData.host_actions, null, 2) : '[]'
   );
 
+  // 常规物理主机文件过滤规则内容状态
+  const [filterRuleData, setFilterRuleData] = useState(
+    store.configData.filter_rule ? store.configData.filter_rule.data : ''
+  );
+
   function handleSubmit() {
     setLoading(true);
     form.validateFields()
       .then(values => {
-        const { name, extend, description, ...configFields } = values;
+        const { name, extend, description, filter_rule_type, ...configFields } = values;
         
         // 组装 config_data
         const configData = {
           ...configFields,
+          filter_rule: {
+            type: filter_rule_type || 'exclude',
+            data: filterRuleData || ''
+          },
           hook_pre_server: hookPreServer,
           hook_post_server: hookPostServer
         };
@@ -83,6 +92,7 @@ export default observer(function TemplateForm() {
     dst_dir: store.configData.dst_dir || '/var/www/{APP_KEY}',
     dst_repo: store.configData.dst_repo || '/data/spug/repos/{APP_KEY}',
     versions: store.configData.versions || 10,
+    filter_rule_type: store.configData.filter_rule ? store.configData.filter_rule.type : 'exclude',
     
     // K8s 初始值
     workload_type: store.configData.workload_type || 'Deployment',
@@ -160,6 +170,31 @@ export default observer(function TemplateForm() {
             </Form.Item>
             <Form.Item required name="versions" label="历史保留版本数">
               <Input type="number" placeholder="默认保留 10 个历史版本" />
+            </Form.Item>
+            
+            {/* 视觉升级后的文件过滤规则与 ACEditor */}
+            <Form.Item 
+              label="文件过滤规则" 
+              tooltip="支持配置打包传输至目标服务器时，在本地需要排除或包含的文件/目录路径模式。">
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                  <Form.Item name="filter_rule_type" noStyle>
+                    <Radio.Group>
+                      <Radio.Button value="include">包含</Radio.Button>
+                      <Radio.Button value="exclude">排除</Radio.Button>
+                    </Radio.Group>
+                  </Form.Item>
+                </div>
+                <ACEditor
+                  mode="text"
+                  theme="tomorrow"
+                  width="100%"
+                  height="120px"
+                  placeholder="请输入过滤规则内容，一行一个路径模式。例如:&#10;.git&#10;.idea&#10;node_modules"
+                  value={filterRuleData}
+                  onChange={v => setFilterRuleData(v)}
+                  style={{ border: '1px solid #e8e8e8' }} />
+              </div>
             </Form.Item>
           </>
         )}

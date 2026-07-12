@@ -29,7 +29,6 @@ function ComTable() {
     className: S.min180,
     render: info => (
       <div>
-        {info.type === '2' && <Tooltip title="回滚发布"><Tag color="#f50">R</Tag></Tooltip>}
         {info.type === '3' && <Tooltip title="Webhook触发"><Tag color="#87d068">A</Tag></Tooltip>}
         {info.plan && <Tooltip title={`定时发布（${info.plan}）`}> <Tag color="#108ee9">P</Tag></Tooltip>}
         {info.name}
@@ -131,15 +130,9 @@ function ComTable() {
         case '-3':
           actionItems.push(<Action.Button key="read" auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>);
           actionItems.push(<DoAction key="do" info={info}/>);
-          if (info.visible_rollback) {
-            actionItems.push(<Action.Button key="rollback" auth="deploy.request.do" onClick={() => store.rollback(info)}>回滚</Action.Button>);
-          }
           break;
         case '3':
           actionItems.push(<Action.Button key="read" auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>);
-          if (info.visible_rollback) {
-            actionItems.push(<Action.Button key="rollback" auth="deploy.request.do" onClick={() => store.rollback(info)}>回滚</Action.Button>);
-          }
           break;
         case '-1':
           actionItems.push(<Action.Button key="edit" auth="deploy.request.edit" onClick={() => store.showForm(info)}>编辑</Action.Button>);
