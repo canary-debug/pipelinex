@@ -346,6 +346,7 @@ class DeployTemplateCreateView(View):
                 env_id=form.env_id,
                 extend=tpl.extend,
                 host_ids='[]',
+                is_audit=False,
                 created_by=request.user
             )
             
