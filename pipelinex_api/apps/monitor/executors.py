@@ -91,7 +91,7 @@ def monitor_worker_handler(job):
             is_ok, message = host_executor(host, command)
         target = f'{host.name}({host.hostname})'
 
-    rds, key, f_count, f_time = get_redis_connection(), f'spug:det:{task_id}', f'c_{addr}', f't_{addr}'
+    rds, key, f_count, f_time = get_redis_connection(), f'pipelinex:det:{task_id}', f'c_{addr}', f't_{addr}'
     v_count, v_time = rds.hmget(key, f_count, f_time)
     if is_ok:
         if v_count:

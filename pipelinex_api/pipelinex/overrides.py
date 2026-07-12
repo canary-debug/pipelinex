@@ -21,7 +21,7 @@ if os.path.exists(config_file):
                 'default': {
                     'ATOMIC_REQUESTS': True,
                     'ENGINE': 'django.db.backends.mysql',
-                    'NAME': mysql_conf.get('database', 'spug'),
+                    'NAME': mysql_conf.get('database', 'pipelinex'),
                     'USER': mysql_conf.get('user', 'root'),
                     'PASSWORD': mysql_conf.get('password', ''),
                     'HOST': mysql_conf.get('host', '127.0.0.1'),
