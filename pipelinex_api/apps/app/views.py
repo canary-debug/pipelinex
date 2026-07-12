@@ -389,5 +389,5 @@ class DeployTemplateCreateView(View):
                     hook_post_server=rendered_config.get('hook_post_server', '')
                 )
             
-            return json_response(message="基于模板一键创建发布配置成功")
+            return json_response(data="基于模板一键创建发布配置成功")
         return json_response(error=error)
