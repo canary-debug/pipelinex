@@ -194,7 +194,9 @@ class DeployView(View):
                     Argument('workload_name', handler=str.strip, help='请输入工作负载名称'),
                     Argument('container_name', handler=str.strip, help='请输入容器名称'),
                     Argument('git_repo', handler=str.strip, required=False),
-                    Argument('image_repo', handler=str.strip, help='请输入镜像仓库地址')
+                    Argument('image_repo', handler=str.strip, help='请输入镜像仓库地址'),
+                    Argument('hook_pre_server', handler=str.strip, default=''),
+                    Argument('hook_post_server', handler=str.strip, default='')
                 ).parse(request.body)
                 if error:
                     return json_response(error=error)

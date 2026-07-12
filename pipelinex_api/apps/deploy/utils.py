@@ -409,12 +409,23 @@ def _k8s_deploy(req, helper, env):
         else:
             tree_ish = extras[1]
             
+        if getattr(extend, 'hook_pre_server', None):
+            step += 1
+            helper.send_step('local', step, f'{human_time()} 检出前任务...\r\n')
+            helper.local(f'cd {repo_dir} && {extend.hook_pre_server}', env)
+            
+        step += 1
+        helper.send_step('local', step, f'{human_time()} 执行检出...        ')
         with Git(extend.git_repo, repo_dir, pkey) as git:
             git.repo.git.clean('-fdx')
             git.repo.git.reset('--hard', tree_ish)
-            
         helper.send_info('local', '\033[32m完成√\033[0m\r\n')
         
+        if getattr(extend, 'hook_post_server', None):
+            step += 1
+            helper.send_step('local', step, f'{human_time()} 检出后任务...\r\n')
+            helper.local(f'cd {repo_dir} && {extend.hook_post_server}', env)
+            
         step += 1
         helper.send_step('local', step, f'{human_time()} 开始构建 Docker 镜像...        ')
         build_path = os.path.join(settings.REPOS_DIR, str(req.deploy_id))

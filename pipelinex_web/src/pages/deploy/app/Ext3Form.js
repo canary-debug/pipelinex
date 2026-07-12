@@ -7,7 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
 import { Modal, Form, Radio, Input, Switch, Select, message } from 'antd';
 import envStore from 'pages/config/environment/store';
-import http from 'libs/http';
+import { http, cleanCommand } from 'libs';
+import { ACEditor } from 'components';
+import 'ace-builds/src-noconflict/mode-sh';
+import 'ace-builds/src-noconflict/theme-tomorrow';
 import Repo from './Repo';
 import store from './store';
 
@@ -16,6 +19,9 @@ export default observer(function Ext3Form() {
   const [envs, setEnvs] = useState([]);
   const [repoVisible, setRepoVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const info = store.deploy;
+  const [hookPreServer, setHookPreServer] = useState(info.hook_pre_server || '');
+  const [hookPostServer, setHookPostServer] = useState(info.hook_post_server || '');
 
   function updateEnvs() {
     const ids = store.currentRecord['deploys'].map(x => x.env_id);
@@ -36,6 +42,8 @@ export default observer(function Ext3Form() {
     const info = {
       ...store.deploy,
       ...fields,
+      hook_pre_server: hookPreServer,
+      hook_post_server: hookPostServer,
       app_id: store.app_id,
       extend: '3',
       host_ids: []  // K8s发布不使用传统物理主机
@@ -48,7 +56,6 @@ export default observer(function Ext3Form() {
       }, () => setLoading(false))
   }
 
-  const info = store.deploy;
   const appName = store.currentRecord.name;
   let title = `K8s发布 - ${appName}`;
   if (store.deploy.id) {
@@ -103,6 +110,46 @@ export default observer(function Ext3Form() {
         </Form.Item>
         <Form.Item name="git_repo" label="Git仓库地址" extra={<span className="btn" onClick={() => setRepoVisible(true)}>私有仓库？</span>}>
           <Input disabled={store.isReadOnly} placeholder="可选，若需要拉取代码构建镜像并推送，请输入Git仓库地址。"/>
+        </Form.Item>
+        <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.git_repo !== currentValues.git_repo}>
+          {({ getFieldValue }) => {
+            const gitRepo = getFieldValue('git_repo');
+            return gitRepo ? (
+              <>
+                <Form.Item
+                  label="代码检出前执行"
+                  tooltip="在运行 PipelineX 的服务器(或容器)上执行，当前目录为仓库源代码目录，可以执行任意自定义命令。"
+                  extra={<span>请避免在此修改已跟踪的文件，防止在检出代码时失败。</span>}>
+                  <ACEditor
+                    readOnly={store.isReadOnly}
+                    mode="sh"
+                    theme="tomorrow"
+                    width="100%"
+                    height="120px"
+                    placeholder="输入要执行的命令"
+                    value={hookPreServer}
+                    onChange={v => setHookPreServer(cleanCommand(v))}
+                    style={{ border: '1px solid #e8e8e8' }} />
+                </Form.Item>
+                <Form.Item
+                  label="代码检出后执行"
+                  style={{ marginTop: 12, marginBottom: 24 }}
+                  tooltip="在运行 PipelineX 的服务器(或容器)上执行，当前目录为检出后的源代码目录，可执行任意自定义命令。"
+                  extra={<span>大多数情况下在此进行构建操作（如 npm run build 或 mvn package）。</span>}>
+                  <ACEditor
+                    readOnly={store.isReadOnly}
+                    mode="sh"
+                    theme="tomorrow"
+                    width="100%"
+                    height="120px"
+                    placeholder="输入要执行的命令"
+                    value={hookPostServer}
+                    onChange={v => setHookPostServer(cleanCommand(v))}
+                    style={{ border: '1px solid #e8e8e8' }} />
+                </Form.Item>
+              </>
+            ) : null;
+          }}
         </Form.Item>
         <Form.Item name="is_audit" label="发布审核" valuePropName="checked" tooltip="开启后发布申请需要审批通过后才能发布。">
           <Switch disabled={store.isReadOnly} checkedChildren="开启" unCheckedChildren="关闭"/>

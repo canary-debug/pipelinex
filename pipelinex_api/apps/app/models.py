@@ -139,6 +139,8 @@ class DeployExtend3(models.Model, ModelMixin):
     container_name = models.CharField(max_length=255)
     git_repo = models.CharField(max_length=255, null=True)
     image_repo = models.CharField(max_length=255)
+    hook_pre_server = models.TextField(null=True)
+    hook_post_server = models.TextField(null=True)
 
     def to_dict(self, *args, **kwargs):
         return super().to_dict(*args, **kwargs)
