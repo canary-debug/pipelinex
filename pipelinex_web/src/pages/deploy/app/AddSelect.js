@@ -189,7 +189,7 @@ export default observer(function AddSelect() {
                               width: 36,
                               height: 36,
                               borderRadius: 4,
-                              backgroundColor: tpl.extend === '3' ? '#e6f7ff' : '#fffbe6',
+                              backgroundColor: tpl.extend === '3' ? '#e6f7ff' : (tpl.extend === '2' ? '#f6ffed' : '#fffbe6'),
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -197,9 +197,11 @@ export default observer(function AddSelect() {
                             }}>
                               {tpl.extend === '3' ? (
                                 <CloudOutlined style={{ fontSize: 20, color: '#1890ff' }} />
+                              ) : (tpl.extend === '2' ? (
+                                <BuildOutlined style={{ fontSize: 20, color: '#52c41a' }} />
                               ) : (
                                 <OrderedListOutlined style={{ fontSize: 20, color: '#faad14' }} />
-                              )}
+                              ))}
                             </div>
                             <div style={{ fontWeight: 'bold', fontSize: 15, color: '#333' }}>{tpl.name}</div>
                           </div>

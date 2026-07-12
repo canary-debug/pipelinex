@@ -159,6 +159,8 @@ class DeployTemplate(models.Model, ModelMixin):
     extend = models.CharField(max_length=1)  # 1-常规, 2-自定义, 3-K8s
     description = models.CharField(max_length=255, null=True)
     config_data = models.TextField()  # 存储具体的构建/发布流程 JSON 配置
+    created_at = models.CharField(max_length=20, default=human_datetime)
+    updated_at = models.CharField(max_length=20, null=True)
 
     def to_dict(self, *args, **kwargs):
         tmp = super().to_dict(*args, **kwargs)

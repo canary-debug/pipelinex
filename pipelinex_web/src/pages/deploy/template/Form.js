@@ -3,12 +3,13 @@
  * Copyright (c) <spug.dev@gmail.com>
  * Released under the AGPL-3.0 License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { observer } from 'mobx-react';
-import { Modal, Form, Input, Radio, Select, Button, message } from 'antd';
+import { Modal, Form, Input, Radio, Button, message } from 'antd';
 import { ACEditor } from 'components';
 import { cleanCommand } from 'libs';
 import 'ace-builds/src-noconflict/mode-sh';
+import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-tomorrow';
 import http from 'libs/http';
 import store from './store';
@@ -19,6 +20,14 @@ export default observer(function TemplateForm() {
   const [extendType, setExtendType] = useState(store.record.extend || '3'); // 默认 K8s 模板
   const [hookPreServer, setHookPreServer] = useState(store.configData.hook_pre_server || '');
   const [hookPostServer, setHookPostServer] = useState(store.configData.hook_post_server || '');
+  
+  // 自定义发布动作 JSON 文本状态
+  const [serverActions, setServerActions] = useState(
+    store.configData.server_actions ? JSON.stringify(store.configData.server_actions, null, 2) : '[]'
+  );
+  const [hostActions, setHostActions] = useState(
+    store.configData.host_actions ? JSON.stringify(store.configData.host_actions, null, 2) : '[]'
+  );
 
   function handleSubmit() {
     setLoading(true);
@@ -32,6 +41,18 @@ export default observer(function TemplateForm() {
           hook_pre_server: hookPreServer,
           hook_post_server: hookPostServer
         };
+
+        // 自定义发布模式解析并封装 actions JSON
+        if (extend === '2') {
+          try {
+            configData.server_actions = JSON.parse(serverActions);
+            configData.host_actions = JSON.parse(hostActions);
+          } catch (e) {
+            message.error('本地或目标主机动作 JSON 语法解析失败，请检查格式。');
+            setLoading(false);
+            return;
+          }
+        }
         
         const params = {
           id: store.record.id,
@@ -84,12 +105,13 @@ export default observer(function TemplateForm() {
       ]}>
       <Form form={form} initialValues={initialValues} labelCol={{ span: 6 }} wrapperCol={{ span: 15 }}>
         <Form.Item required name="name" label="模板名称">
-          <Input placeholder="例如: NodeJS-K8s标准发版模板" />
+          <Input placeholder="例如: Java-Maven-K8s标准构建模板" />
         </Form.Item>
         <Form.Item required name="extend" label="发布类型">
           <Radio.Group onChange={e => setExtendType(e.target.value)}>
             <Radio.Button value="3">K8s发布</Radio.Button>
             <Radio.Button value="1">常规物理主机发布</Radio.Button>
+            <Radio.Button value="2">自定义发布</Radio.Button>
           </Radio.Group>
         </Form.Item>
         <Form.Item name="description" label="模板备注">
@@ -142,37 +164,77 @@ export default observer(function TemplateForm() {
           </>
         )}
 
-        {/* 3. 共享的代码检出 Hook 配置 */}
-        <div style={{ borderTop: '1px dashed #e8e8e8', margin: '20px 0', padding: '10px 0', color: '#1890ff', fontWeight: 'bold' }}>
-          代码检出 Hook 模板 (在 PipelineX 本地执行)
-        </div>
-        <Form.Item
-          label="代码检出前执行"
-          extra="代码拉取完毕后但尚未切换版本前执行，通常留空。">
-          <ACEditor
-            mode="sh"
-            theme="tomorrow"
-            width="100%"
-            height="120px"
-            placeholder="输入要预置的构建前命令"
-            value={hookPreServer}
-            onChange={v => setHookPreServer(cleanCommand(v))}
-            style={{ border: '1px solid #e8e8e8' }} />
-        </Form.Item>
-        <Form.Item
-          label="代码检出后执行"
-          style={{ marginTop: 12 }}
-          extra="代码版本切换成功后且在 Dockerfile 镜像打包前执行，常用于编译打包 (如 npm run build 或 mvn package)。">
-          <ACEditor
-            mode="sh"
-            theme="tomorrow"
-            width="100%"
-            height="120px"
-            placeholder="输入要预置的编译构建命令，如 npm run build"
-            value={hookPostServer}
-            onChange={v => setHookPostServer(cleanCommand(v))}
-            style={{ border: '1px solid #e8e8e8' }} />
-        </Form.Item>
+        {/* 3. 自定义发布动作模板配置 */}
+        {extendType === '2' && (
+          <>
+            <div style={{ borderTop: '1px dashed #e8e8e8', margin: '20px 0', padding: '10px 0', color: '#1890ff', fontWeight: 'bold' }}>
+              自定义发布动作步骤模板 (请提供 JSON 格式配置)
+            </div>
+            <Form.Item
+              label="本地执行动作 (server_actions)"
+              extra="在部署主机上执行的脚本或动作步骤列表，以 JSON 格式提供。">
+              <ACEditor
+                mode="json"
+                theme="tomorrow"
+                width="100%"
+                height="120px"
+                placeholder="例如: []"
+                value={serverActions}
+                onChange={v => setServerActions(v)}
+                style={{ border: '1px solid #e8e8e8' }} />
+            </Form.Item>
+            <Form.Item
+              label="目标主机动作 (host_actions)"
+              style={{ marginTop: 12 }}
+              extra="在目标目标服务器上执行的动作步骤列表，以 JSON 格式提供。">
+              <ACEditor
+                mode="json"
+                theme="tomorrow"
+                width="100%"
+                height="120px"
+                placeholder="例如: []"
+                value={hostActions}
+                onChange={v => setHostActions(v)}
+                style={{ border: '1px solid #e8e8e8' }} />
+            </Form.Item>
+          </>
+        )}
+
+        {/* 4. 共享的代码检出 Hook 配置 */}
+        {extendType !== '2' && (
+          <>
+            <div style={{ borderTop: '1px dashed #e8e8e8', margin: '20px 0', padding: '10px 0', color: '#1890ff', fontWeight: 'bold' }}>
+              代码检出 Hook 模板 (在 PipelineX 本地执行)
+            </div>
+            <Form.Item
+              label="代码检出前执行"
+              extra="代码拉取完毕后但尚未切换版本前执行，通常留空。">
+              <ACEditor
+                mode="sh"
+                theme="tomorrow"
+                width="100%"
+                height="120px"
+                placeholder="输入要预置的构建前命令"
+                value={hookPreServer}
+                onChange={v => setHookPreServer(cleanCommand(v))}
+                style={{ border: '1px solid #e8e8e8' }} />
+            </Form.Item>
+            <Form.Item
+              label="代码检出后执行"
+              style={{ marginTop: 12 }}
+              extra="代码版本切换成功后且在 Dockerfile 镜像打包前执行，常用于编译打包 (如 npm run build 或 mvn package)。">
+              <ACEditor
+                mode="sh"
+                theme="tomorrow"
+                width="100%"
+                height="120px"
+                placeholder="输入要预置的编译构建命令，如 npm run build"
+                value={hookPostServer}
+                onChange={v => setHookPostServer(cleanCommand(v))}
+                style={{ border: '1px solid #e8e8e8' }} />
+            </Form.Item>
+          </>
+        )}
       </Form>
     </Modal>
   );
