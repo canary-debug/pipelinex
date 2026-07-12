@@ -4,7 +4,7 @@
 from django.views.generic import View
 from django.db.models import F
 from libs import JsonParser, Argument, json_response, auth
-from apps.app.models import App, Deploy, DeployExtend1, DeployExtend2, DeployExtend3
+from apps.app.models import App, Deploy, DeployExtend1, DeployExtend2, DeployExtend3, DeployTemplate
 from apps.config.models import Config, ConfigHistory, Service
 from apps.app.utils import fetch_versions, remove_repo
 from apps.setting.utils import AppSetting
@@ -248,3 +248,145 @@ def kit_key(request):
         api_key = AppSetting.get_default(form.key)
         return json_response(api_key)
     return json_response(error=error)
+
+
+class DeployTemplateView(View):
+    def get(self, request):
+        form, error = JsonParser(
+            Argument('id', type=int, required=False)
+        ).parse(request.GET)
+        if error is None:
+            if form.id:
+                tpl = DeployTemplate.objects.filter(pk=form.id).first()
+                return json_response(tpl)
+            templates = DeployTemplate.objects.all()
+            return json_response(templates)
+        return json_response(error=error)
+
+    @auth('deploy.app.config')
+    def post(self, request):
+        form, error = JsonParser(
+            Argument('id', type=int, required=False),
+            Argument('name', help='请输入模板名称'),
+            Argument('extend', help='请选择发布类型'),
+            Argument('description', required=False),
+            Argument('config_data', type=dict, help='请输入模板配置参数')
+        ).parse(request.body)
+        if error is None:
+            config_str = json.dumps(form.config_data)
+            if form.id:
+                DeployTemplate.objects.filter(pk=form.id).update(
+                    name=form.name,
+                    extend=form.extend,
+                    description=form.description,
+                    config_data=config_str
+                )
+            else:
+                DeployTemplate.objects.create(
+                    name=form.name,
+                    extend=form.extend,
+                    description=form.description,
+                    config_data=config_str
+                )
+        return json_response(error=error)
+
+    @auth('deploy.app.config')
+    def delete(self, request):
+        form, error = JsonParser(
+            Argument('id', type=int, help='参数错误')
+        ).parse(request.GET)
+        if error is None:
+            DeployTemplate.objects.filter(pk=form.id).delete()
+        return json_response(error=error)
+
+
+class DeployTemplateCreateView(View):
+    @auth('deploy.app.config')
+    def post(self, request):
+        form, error = JsonParser(
+            Argument('app_id', type=int, help='应用ID参数错误'),
+            Argument('env_id', type=int, help='环境ID参数错误'),
+            Argument('template_id', type=int, help='模板ID参数错误'),
+            Argument('git_repo', required=False, handler=str.strip)
+        ).parse(request.body)
+        if error is None:
+            # 1. 检查在该环境下该应用发布是否已存在
+            exists = Deploy.objects.filter(app_id=form.app_id, env_id=form.env_id).exists()
+            if exists:
+                return json_response(error='当前发布环境已存在该应用的发布配置，请勿重复创建。')
+            
+            # 2. 读取模板
+            tpl = DeployTemplate.objects.filter(pk=form.template_id).first()
+            if not tpl:
+                return json_response(error='未找到指定的发布模板。')
+            
+            app = App.objects.filter(pk=form.app_id).first()
+            if not app:
+                return json_response(error='未找到指定的应用。')
+                
+            config = json.loads(tpl.config_data)
+            
+            # 3. 动态替换占位符
+            def render_placeholder(val):
+                if isinstance(val, str):
+                    val = val.replace('{APP_KEY}', app.key)
+                    val = val.replace('{APP_NAME}', app.name)
+                return val
+                
+            rendered_config = {}
+            for k, v in config.items():
+                if isinstance(v, dict):
+                    rendered_config[k] = {sk: render_placeholder(sv) for sk, sv in v.items()}
+                else:
+                    rendered_config[k] = render_placeholder(v)
+            
+            # 4. 创建 Deploy 基础记录
+            deploy = Deploy.objects.create(
+                app_id=form.app_id,
+                env_id=form.env_id,
+                extend=tpl.extend,
+                host_ids='[]',
+                created_by=request.user
+            )
+            
+            # 5. 保存具体的 extend 信息并挂载 template_id
+            if tpl.extend == '1':
+                DeployExtend1.objects.create(
+                    deploy=deploy,
+                    git_repo=form.git_repo,
+                    template_id=tpl.id,
+                    dst_dir=rendered_config.get('dst_dir', ''),
+                    dst_repo=rendered_config.get('dst_repo', ''),
+                    versions=rendered_config.get('versions', 10),
+                    filter_rule=json.dumps(rendered_config.get('filter_rule', {'type': 'exclude', 'data': ''})),
+                    hook_pre_server=rendered_config.get('hook_pre_server', ''),
+                    hook_post_server=rendered_config.get('hook_post_server', ''),
+                    hook_pre_host=rendered_config.get('hook_pre_host', ''),
+                    hook_post_host=rendered_config.get('hook_post_host', '')
+                )
+            elif tpl.extend == '2':
+                server_actions = json.dumps(rendered_config.get('server_actions', []))
+                host_actions = json.dumps(rendered_config.get('host_actions', []))
+                DeployExtend2.objects.create(
+                    deploy=deploy,
+                    git_repo=form.git_repo,
+                    server_actions=server_actions,
+                    host_actions=host_actions,
+                    require_upload=rendered_config.get('require_upload', False)
+                )
+            elif tpl.extend == '3':
+                DeployExtend3.objects.create(
+                    deploy=deploy,
+                    git_repo=form.git_repo,
+                    template_id=tpl.id,
+                    workload_type=rendered_config.get('workload_type', 'Deployment'),
+                    workload_namespace=rendered_config.get('workload_namespace', 'default'),
+                    workload_name=rendered_config.get('workload_name', app.key),
+                    container_name=rendered_config.get('container_name', app.key),
+                    image_repo=rendered_config.get('image_repo', ''),
+                    hook_pre_server=rendered_config.get('hook_pre_server', ''),
+                    hook_post_server=rendered_config.get('hook_post_server', '')
+                )
+            
+            return json_response(message="基于模板一键创建发布配置成功")
+        return json_response(error=error)

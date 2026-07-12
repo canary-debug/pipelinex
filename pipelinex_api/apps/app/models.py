@@ -98,6 +98,7 @@ class DeployExtend1(models.Model, ModelMixin):
     hook_post_server = models.TextField(null=True)
     hook_pre_host = models.TextField(null=True)
     hook_post_host = models.TextField(null=True)
+    template_id = models.IntegerField(null=True)
 
     def to_dict(self, *args, **kwargs):
         tmp = super().to_dict(*args, **kwargs)
@@ -141,6 +142,7 @@ class DeployExtend3(models.Model, ModelMixin):
     image_repo = models.CharField(max_length=255)
     hook_pre_server = models.TextField(null=True)
     hook_post_server = models.TextField(null=True)
+    template_id = models.IntegerField(null=True)
 
     def to_dict(self, *args, **kwargs):
         return super().to_dict(*args, **kwargs)
@@ -150,4 +152,20 @@ class DeployExtend3(models.Model, ModelMixin):
 
     class Meta:
         db_table = 'deploy_extend3'
+
+
+class DeployTemplate(models.Model, ModelMixin):
+    name = models.CharField(max_length=100)
+    extend = models.CharField(max_length=1)  # 1-常规, 2-自定义, 3-K8s
+    description = models.CharField(max_length=255, null=True)
+    config_data = models.TextField()  # 存储具体的构建/发布流程 JSON 配置
+
+    def to_dict(self, *args, **kwargs):
+        tmp = super().to_dict(*args, **kwargs)
+        tmp['config_data'] = json.loads(self.config_data)
+        return tmp
+
+    class Meta:
+        db_table = 'deploy_template'
+
 

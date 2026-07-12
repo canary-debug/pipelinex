@@ -9,5 +9,7 @@ urlpatterns = [
     path('', AppView.as_view()),
     path('kit/key/', kit_key),
     path('deploy/', DeployView.as_view()),
+    path('deploy/template/', DeployTemplateView.as_view()),
+    path('deploy/template/create/', DeployTemplateCreateView.as_view()),
     path('deploy/<int:d_id>/versions/', get_versions),
 ]
