@@ -67,8 +67,8 @@ class Deploy(models.Model, ModelMixin):
         deploy = super().to_dict(*args, **kwargs)
         deploy['app_key'] = self.app_key if hasattr(self, 'app_key') else None
         deploy['app_name'] = self.app_name if hasattr(self, 'app_name') else None
-        deploy['host_ids'] = json.loads(self.host_ids)
-        deploy['rst_notify'] = json.loads(self.rst_notify)
+        deploy['host_ids'] = json.loads(self.host_ids) if self.host_ids else []
+        deploy['rst_notify'] = json.loads(self.rst_notify) if self.rst_notify else {'mode': '0'}
         deploy.update(self.extend_obj.to_dict())
         return deploy
 
