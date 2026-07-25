@@ -10,10 +10,12 @@ import { Select, DatePicker, Space } from 'antd';
 import { SearchForm, AuthDiv, AuthButton, Breadcrumb, AppSelector } from 'components';
 import Ext1Form from './Ext1Form';
 import Ext2Form from './Ext2Form';
+import Ext3Form from './Ext3Form';
 import Approve from './Approve';
 import ComTable from './Table';
 import Ext1Console from './Ext1Console';
 import Ext2Console from './Ext2Console';
+import Ext3Console from './Ext3Console';
 import BatchDelete from './BatchDelete';
 import Rollback from './Rollback';
 import { includes } from 'libs';
@@ -25,6 +27,12 @@ import styles from './index.module.less';
 
 function Index() {
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const envId = params.get('env_id');
+    const appId = params.get('app_id');
+    if (envId) store.f_env_id = parseInt(envId, 10) || undefined;
+    if (appId) store.f_app_id = parseInt(appId, 10) || undefined;
+
     store.fetchRecords()
     if (envStore.records.length === 0) envStore.fetchRecords()
     if (appStore.records.length === 0) appStore.fetchRecords()
@@ -85,6 +93,7 @@ function Index() {
         onSelect={store.confirmAdd}/>
       {store.ext1Visible && <Ext1Form/>}
       {store.ext2Visible && <Ext2Form/>}
+      {store.ext3Visible && <Ext3Form/>}
       {store.batchVisible && <BatchDelete/>}
       {store.approveVisible && <Approve/>}
       {store.rollbackVisible && <Rollback/>}
@@ -93,8 +102,10 @@ function Index() {
           {store.tabs.map(item => item.id ?
             item.app_extend === '1' ? (
               <Ext1Console key={item.id} request={item}/>
-            ) : (
+            ) : item.app_extend === '2' ? (
               <Ext2Console key={item.id} request={item}/>
+            ) : (
+              <Ext3Console key={item.id} request={item}/>
             ) : null)}
         </Space>
       )}

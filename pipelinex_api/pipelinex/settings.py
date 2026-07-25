@@ -57,10 +57,10 @@ MIDDLEWARE = [
     'libs.middleware.HandleExceptionMiddleware',
 ]
 
-ROOT_URLCONF = 'spug.urls'
+ROOT_URLCONF = 'pipelinex.urls'
 
-WSGI_APPLICATION = 'spug.wsgi.application'
-ASGI_APPLICATION = 'spug.routing.application'
+WSGI_APPLICATION = 'pipelinex.wsgi.application'
+ASGI_APPLICATION = 'pipelinex.routing.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
@@ -103,13 +103,13 @@ TEMPLATES = [
 ]
 
 TOKEN_TTL = 8 * 3600
-SCHEDULE_KEY = 'spug:schedule'
-SCHEDULE_WORKER_KEY = 'spug:schedule:worker'
-MONITOR_KEY = 'spug:monitor'
-MONITOR_WORKER_KEY = 'spug:monitor:worker'
-EXEC_WORKER_KEY = 'spug:exec:worker'
-REQUEST_KEY = 'spug:request'
-BUILD_KEY = 'spug:build'
+SCHEDULE_KEY = 'pipelinex:schedule'
+SCHEDULE_WORKER_KEY = 'pipelinex:schedule:worker'
+MONITOR_KEY = 'pipelinex:monitor'
+MONITOR_WORKER_KEY = 'pipelinex:monitor:worker'
+EXEC_WORKER_KEY = 'pipelinex:exec:worker'
+REQUEST_KEY = 'pipelinex:request'
+BUILD_KEY = 'pipelinex:build'
 REPOS_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), 'repos')
 BUILD_DIR = os.path.join(REPOS_DIR, 'build')
 TRANSFER_DIR = os.path.join(BASE_DIR, 'storage', 'transfer')
@@ -137,6 +137,6 @@ SPUG_VERSION = 'v3.4.0'
 
 # override default config
 try:
-    from spug.overrides import *
+    from pipelinex.overrides import *
 except ImportError:
     pass

@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
 import { LoadingOutlined, SyncOutlined } from '@ant-design/icons';
 import { Modal, Form, Input, Select, Button, message } from 'antd';
-import http from 'libs/http';
+import { http, includes } from 'libs';
 import store from './store';
 import lds from 'lodash';
 
@@ -159,16 +159,28 @@ export default observer(function () {
         </Form.Item>
         {git_type === 'branch' && (
           <Form.Item required label="选择Commit ID">
-            <Select value={extra2} placeholder="请选择" onChange={v => setExtra2(v)}>
+            <Select
+              showSearch
+              value={extra2}
+              placeholder="请选择"
+              onChange={v => setExtra2(v)}
+              optionFilterProp="content"
+              dropdownMatchSelectWidth={false}
+              filterOption={(input, option) => includes(option.content, input)}
+              style={{ width: '100%' }}>
               {extra1 && branches ? branches[extra1].map(item => (
-                <Select.Option key={item.id}>
-                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <Select.Option
+                  key={item.id}
+                  value={item.id}
+                  content={`${item.id.substr(0, 6)} ${item.author} ${item.message}`}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                     <span style={{
-                      width: 400,
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>{item.id.substr(0, 6)} {item['author']} {item['message']}</span>
-                    <span style={{color: '#999', fontSize: 12}}>{item['date']} </span>
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      marginRight: 16
+                    }}>{item.id.substr(0, 6)} {item.author} {item.message}</span>
+                    <span style={{ color: '#999', fontSize: 12, flexShrink: 0 }}>{item.date}</span>
                   </div>
                 </Select.Option>
               )) : null}

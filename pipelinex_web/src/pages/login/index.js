@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Tabs, Modal, message } from 'antd';
-import { UserOutlined, LockOutlined, CopyrightOutlined, GithubOutlined, MailOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, CopyrightOutlined, MailOutlined } from '@ant-design/icons';
 import styles from './login.module.css';
 import history from 'libs/history';
 import { http, updatePermissions } from 'libs';
@@ -151,10 +151,6 @@ export default function () {
       </div>
 
       <div className={styles.footerZone}>
-        <div className={styles.linksZone}>
-          <a className={styles.links} title="Github" href="https://github.com/openspug/spug" target="_blank"
-             rel="noopener noreferrer"><GithubOutlined/></a>
-        </div>
         <div style={{color: 'rgba(0, 0, 0, .45)'}}>Copyright <CopyrightOutlined/> {new Date().getFullYear()} By OpenSpug</div>
       </div>
     </div>

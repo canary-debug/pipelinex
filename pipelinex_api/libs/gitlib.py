@@ -33,12 +33,12 @@ class Git:
                     'id': ref.tag.hexsha,
                     'author': ref.tag.tagger.name,
                     'date': self._format_date(ref.tag.tagged_date),
-                    'message': ref.tag.message.strip()
+                    'message': (ref.tag.message or '').strip().split('\n')[0].strip()
                 } if ref.tag else {
                     'id': ref.commit.binsha.hex(),
                     'author': ref.commit.author.name,
                     'date': self._format_date(ref.commit.authored_date),
-                    'message': ref.commit.message.strip()
+                    'message': (ref.commit.message or '').strip().split('\n')[0].strip()
                 }
         tags = sorted(tags.items(), key=lambda x: x[1]['date'], reverse=True)
         return branches, dict(tags)
@@ -47,13 +47,27 @@ class Git:
         kwargs = dict(f=True, p=True)
         if self.repo.git.version_info >= (2, 17, 0):
             kwargs.update(P=True)
+        if self.env:
+            kwargs.update(env=self.env)
         try:
             self.repo.remotes.origin.fetch(**kwargs)
-        except GitCommandError as e:
-            if self.env:
-                self.repo.remotes.origin.fetch(env=self.env, **kwargs)
-            else:
-                raise e
+        except (GitCommandError, AssertionError) as e:
+            if 'has no refspec set' in str(e):
+                try:
+                    self.repo.git.config('--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*')
+                    self.repo.remotes.origin.fetch(**kwargs)
+                    return
+                except Exception:
+                    pass
+            # 终极自愈：若仍然报错，直接物理删除整个损坏的本地 Git 目录并重新 clone
+            try:
+                if os.path.exists(self.repo_dir):
+                    shutil.rmtree(self.repo_dir, ignore_errors=True)
+                self.repo = self._get_repo()
+                self.repo.remotes.origin.fetch(**kwargs)
+                return
+            except Exception as clone_err:
+                raise clone_err
 
     def _get_repo(self):
         if os.path.exists(self.repo_dir):
@@ -65,12 +79,12 @@ class Git:
                 else:
                     os.remove(self.repo_dir)
         try:
-            repo = Repo.clone_from(self.git_repo, self.repo_dir)
-        except GitCommandError as e:
             if self.env:
                 repo = Repo.clone_from(self.git_repo, self.repo_dir, env=self.env)
             else:
-                raise e
+                repo = Repo.clone_from(self.git_repo, self.repo_dir)
+        except GitCommandError as e:
+            raise e
         return repo
 
     def _get_commits(self, branch, count=10):
@@ -82,7 +96,7 @@ class Git:
                 'id': commit.hexsha,
                 'author': commit.author.name,
                 'date': self._format_date(commit.committed_date),
-                'message': commit.message.strip()
+                'message': (commit.message or '').strip().split('\n')[0].strip()
             })
         return commits
 
@@ -98,6 +112,8 @@ class Git:
             self.fd.write(self.pkey.encode())
             self.fd.flush()
             self.env = {'GIT_SSH_COMMAND': f'ssh -o StrictHostKeyChecking=no -i {self.fd.name}'}
+        else:
+            self.env = {'GIT_SSH_COMMAND': 'ssh -o StrictHostKeyChecking=no'}
         self.repo = self._get_repo()
         return self
 

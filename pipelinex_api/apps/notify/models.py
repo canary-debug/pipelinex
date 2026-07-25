@@ -48,7 +48,7 @@ class Notify(models.Model, ModelMixin):
     def _make_notify(cls, source, type, title, content):
         tmp_str = f'{source},{type},{title},{content}'
         digest = hashlib.md5(tmp_str.encode()).hexdigest()
-        unique_key = f'spug:notify:{digest}'
+        unique_key = f'pipelinex:notify:{digest}'
         if not cache.get(unique_key):   # 限制相同内容的发送频率
             cache.set(unique_key, 1, 3600)
             cls.objects.create(source=source, title=title, type=type, content=content)

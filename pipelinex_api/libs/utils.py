@@ -9,6 +9,9 @@ from string import Template
 import string
 import random
 import json
+import base64
+from django.conf import settings
+from cryptography.fernet import Fernet
 
 
 # 转换时间格式到字符串
@@ -132,3 +135,29 @@ def get_request_real_ip(headers: dict):
     if not x_real_ip:
         x_real_ip = headers.get('x-real-ip', '')
     return x_real_ip.split(',')[0]
+
+
+def get_crypto_key():
+    key = settings.SECRET_KEY.encode('utf-8')
+    if len(key) < 32:
+        key = key.ljust(32, b'0')
+    elif len(key) > 32:
+        key = key[:32]
+    return base64.urlsafe_b64encode(key)
+
+
+def encrypt_kubeconfig(plain_text: str) -> str:
+    if not plain_text:
+        return ''
+    key = get_crypto_key()
+    f = Fernet(key)
+    return f.encrypt(plain_text.encode('utf-8')).decode('utf-8')
+
+
+def decrypt_kubeconfig(cipher_text: str) -> str:
+    if not cipher_text:
+        return ''
+    key = get_crypto_key()
+    f = Fernet(key)
+    return f.decrypt(cipher_text.encode('utf-8')).decode('utf-8')
+

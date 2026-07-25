@@ -29,7 +29,6 @@ function ComTable() {
     className: S.min180,
     render: info => (
       <div>
-        {info.type === '2' && <Tooltip title="回滚发布"><Tag color="#f50">R</Tag></Tooltip>}
         {info.type === '3' && <Tooltip title="Webhook触发"><Tag color="#87d068">A</Tag></Tooltip>}
         {info.plan && <Tooltip title={`定时发布（${info.plan}）`}> <Tag color="#108ee9">P</Tag></Tooltip>}
         {info.name}
@@ -124,47 +123,41 @@ function ComTable() {
   }, {
     title: '操作',
     fixed: 'right',
-    className: hasPermission('deploy.request.do|deploy.request.edit|deploy.request.approve|deploy.request.del') ? S.min180 : 'none',
+    className: S.min220,
     render: info => {
+      const actionItems = [];
       switch (info.status) {
         case '-3':
-          return <Action>
-            <Action.Button auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>
-            <DoAction info={info}/>
-            {info.visible_rollback && (
-              <Action.Button auth="deploy.request.do" onClick={() => store.rollback(info)}>回滚</Action.Button>
-            )}
-          </Action>;
+          actionItems.push(<Action.Button key="read" auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>);
+          actionItems.push(<DoAction key="do" info={info}/>);
+          break;
         case '3':
-          return <Action>
-            <Action.Button auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>
-            {info.visible_rollback && (
-              <Action.Button auth="deploy.request.do" onClick={() => store.rollback(info)}>回滚</Action.Button>
-            )}
-          </Action>;
+          actionItems.push(<Action.Button key="read" auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>);
+          break;
         case '-1':
-          return <Action>
-            <Action.Button auth="deploy.request.edit" onClick={() => store.showForm(info)}>编辑</Action.Button>
-            <Action.Button auth="deploy.request.del" onClick={() => handleDelete(info)}>删除</Action.Button>
-          </Action>;
+          actionItems.push(<Action.Button key="edit" auth="deploy.request.edit" onClick={() => store.showForm(info)}>编辑</Action.Button>);
+          actionItems.push(<Action.Button key="del" auth="deploy.request.del" onClick={() => handleDelete(info)}>删除</Action.Button>);
+          break;
         case '0':
-          return <Action>
-            <Action.Button auth="deploy.request.approve" onClick={() => store.showApprove(info)}>审核</Action.Button>
-            <Action.Button auth="deploy.request.edit" onClick={() => store.showForm(info)}>编辑</Action.Button>
-            <Action.Button auth="deploy.request.del" onClick={() => handleDelete(info)}>删除</Action.Button>
-          </Action>;
+          actionItems.push(<Action.Button key="approve" auth="deploy.request.approve" onClick={() => store.showApprove(info)}>审核</Action.Button>);
+          actionItems.push(<Action.Button key="edit" auth="deploy.request.edit" onClick={() => store.showForm(info)}>编辑</Action.Button>);
+          actionItems.push(<Action.Button key="del" auth="deploy.request.del" onClick={() => handleDelete(info)}>删除</Action.Button>);
+          break;
         case '1':
-          return <Action>
-            <DoAction info={info}/>
-            <Action.Button auth="deploy.request.del" onClick={() => handleDelete(info)}>删除</Action.Button>
-          </Action>;
+          actionItems.push(<DoAction key="do" info={info}/>);
+          actionItems.push(<Action.Button key="del" auth="deploy.request.del" onClick={() => handleDelete(info)}>删除</Action.Button>);
+          break;
         case '2':
-          return <Action>
-            <Action.Button auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>
-          </Action>;
-        default:
-          return null
+          actionItems.push(<Action.Button key="read" auth="deploy.request.do" onClick={() => store.readConsole(info)}>查看</Action.Button>);
+          break;
       }
+      actionItems.push(<Action.Button key="share" onClick={() => handleShare(info)}>分享</Action.Button>);
+
+      return (
+        <Action>
+          {actionItems}
+        </Action>
+      );
     }
   }];
 
@@ -200,6 +193,35 @@ function ComTable() {
   function handleDeploy(e, info, mode) {
     info.mode = mode
     store.showConsole(info);
+  }
+
+  function handleShare(info) {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?env_id=${info.env_id}&app_id=${info.app_id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => message.success('已复制分享链接到剪切板，发送给审核人即可快捷访问！'))
+        .catch(err => {
+          console.error('复制链接失败', err);
+          _fallbackCopy(shareUrl);
+        });
+    } else {
+      _fallbackCopy(shareUrl);
+    }
+  }
+
+  function _fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      message.success('已复制分享链接到剪切板，发送给审核人即可快捷访问！');
+    } catch (err) {
+      message.error('自动复制链接失败，请手动复制地址栏链接');
+    }
+    document.body.removeChild(textarea);
   }
 
   return (

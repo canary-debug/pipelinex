@@ -19,6 +19,7 @@ class Store {
   @observable addVisible = false;
   @observable ext1Visible = false;
   @observable ext2Visible = false;
+  @observable ext3Visible = false;
   @observable autoVisible = false;
 
   @observable f_name;
@@ -69,8 +70,10 @@ class Store {
     if (info) {
       if (info.extend === '1') {
         this.ext1Visible = true
-      } else {
+      } else if (info.extend === '2') {
         this.ext2Visible = true
+      } else {
+        this.ext3Visible = true
       }
       isClone && delete info.id;
       this.deploy = info

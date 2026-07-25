@@ -39,6 +39,7 @@ class Deploy(models.Model, ModelMixin):
     EXTENDS = (
         ('1', '常规发布'),
         ('2', '自定义发布'),
+        ('3', 'K8s发布'),
     )
     app = models.ForeignKey(App, on_delete=models.PROTECT)
     env = models.ForeignKey(Environment, on_delete=models.PROTECT)
@@ -54,15 +55,20 @@ class Deploy(models.Model, ModelMixin):
 
     @property
     def extend_obj(self):
-        cls = DeployExtend1 if self.extend == '1' else DeployExtend2
+        if self.extend == '1':
+            cls = DeployExtend1
+        elif self.extend == '2':
+            cls = DeployExtend2
+        else:
+            cls = DeployExtend3
         return cls.objects.filter(deploy=self).first()
 
     def to_dict(self, *args, **kwargs):
         deploy = super().to_dict(*args, **kwargs)
         deploy['app_key'] = self.app_key if hasattr(self, 'app_key') else None
         deploy['app_name'] = self.app_name if hasattr(self, 'app_name') else None
-        deploy['host_ids'] = json.loads(self.host_ids)
-        deploy['rst_notify'] = json.loads(self.rst_notify)
+        deploy['host_ids'] = json.loads(self.host_ids) if self.host_ids else []
+        deploy['rst_notify'] = json.loads(self.rst_notify) if self.rst_notify else {'mode': '0'}
         deploy.update(self.extend_obj.to_dict())
         return deploy
 
@@ -92,6 +98,7 @@ class DeployExtend1(models.Model, ModelMixin):
     hook_post_server = models.TextField(null=True)
     hook_pre_host = models.TextField(null=True)
     hook_post_host = models.TextField(null=True)
+    template_id = models.IntegerField(null=True)
 
     def to_dict(self, *args, **kwargs):
         tmp = super().to_dict(*args, **kwargs)
@@ -123,3 +130,44 @@ class DeployExtend2(models.Model, ModelMixin):
 
     class Meta:
         db_table = 'deploy_extend2'
+
+
+class DeployExtend3(models.Model, ModelMixin):
+    deploy = models.OneToOneField(Deploy, primary_key=True, on_delete=models.CASCADE)
+    workload_type = models.CharField(max_length=50)
+    workload_namespace = models.CharField(max_length=255, default='default')
+    workload_name = models.CharField(max_length=255)
+    container_name = models.CharField(max_length=255)
+    git_repo = models.CharField(max_length=255, null=True)
+    image_repo = models.CharField(max_length=255)
+    hook_pre_server = models.TextField(null=True)
+    hook_post_server = models.TextField(null=True)
+    template_id = models.IntegerField(null=True)
+
+    def to_dict(self, *args, **kwargs):
+        return super().to_dict(*args, **kwargs)
+
+    def __repr__(self):
+        return '<DeployExtend3 deploy_id=%r>' % self.deploy_id
+
+    class Meta:
+        db_table = 'deploy_extend3'
+
+
+class DeployTemplate(models.Model, ModelMixin):
+    name = models.CharField(max_length=100)
+    extend = models.CharField(max_length=1)  # 1-常规, 2-自定义, 3-K8s
+    description = models.CharField(max_length=255, null=True)
+    config_data = models.TextField()  # 存储具体的构建/发布流程 JSON 配置
+    created_at = models.CharField(max_length=20, default=human_datetime)
+    updated_at = models.CharField(max_length=20, null=True)
+
+    def to_dict(self, *args, **kwargs):
+        tmp = super().to_dict(*args, **kwargs)
+        tmp['config_data'] = json.loads(self.config_data)
+        return tmp
+
+    class Meta:
+        db_table = 'deploy_template'
+
+

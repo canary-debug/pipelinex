@@ -3,12 +3,26 @@
 # Released under the AGPL-3.0 License.
 from django.views.generic import View
 from django.db.models import F
-from libs import json_response, JsonParser, Argument, auth
+from libs import json_response, JsonParser, Argument, auth, encrypt_kubeconfig
 from apps.app.models import Deploy, App
 from apps.repository.models import Repository
 from apps.config.models import *
 import json
 import re
+import base64
+
+
+def try_base64_decode(val):
+    val_strip = val.strip()
+    if len(val_strip) % 4 == 0 and re.match(r'^[A-Za-z0-9+/=]+$', val_strip):
+        try:
+            decoded = base64.b64decode(val_strip).decode('utf-8')
+            if 'apiVersion' in decoded or 'clusters' in decoded:
+                return decoded
+        except Exception:
+            pass
+    return val
+
 
 
 class EnvironmentView(View):
@@ -25,7 +39,8 @@ class EnvironmentView(View):
             Argument('id', type=int, required=False),
             Argument('name', help='请输入环境名称'),
             Argument('key', help='请输入唯一标识符'),
-            Argument('desc', required=False)
+            Argument('desc', required=False),
+            Argument('k8s_config', required=False)
         ).parse(request.body)
         if error is None:
             if not re.fullmatch(r'\w+', form.key, re.ASCII):
@@ -34,10 +49,28 @@ class EnvironmentView(View):
             env = Environment.objects.filter(key=form.key).first()
             if env and env.id != form.id:
                 return json_response(error=f'唯一标识符 {form.key} 已存在，请更改后重试')
-            if form.id:
-                Environment.objects.filter(pk=form.id).update(**form)
+
+            data = {
+                'name': form.name,
+                'key': form.key,
+                'desc': form.desc
+            }
+            if form.k8s_config is not None:
+                if form.k8s_config == '******':
+                    pass
+                elif form.k8s_config.strip() == '':
+                    data['k8s_config'] = None
+                else:
+                    config_val = try_base64_decode(form.k8s_config)
+                    data['k8s_config'] = encrypt_kubeconfig(config_val.strip())
             else:
-                env = Environment.objects.create(created_by=request.user, **form)
+                if not form.id:
+                    data['k8s_config'] = None
+
+            if form.id:
+                Environment.objects.filter(pk=form.id).update(**data)
+            else:
+                env = Environment.objects.create(created_by=request.user, **data)
                 env.sort_id = env.id
                 env.save()
         return json_response(error=error)
