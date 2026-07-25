@@ -21,6 +21,12 @@ module.exports = override(
     }
   }),
   (config) => {
+    // 移除 Create React App 默认的 GenerateSW 插件，解决构建时 Generate service worker 'assignWith is not defined' 的兼容性报错
+    if (config.plugins) {
+      config.plugins = config.plugins.filter(
+        (plugin) => !(plugin.constructor && plugin.constructor.name === 'GenerateSW')
+      );
+    }
     config.plugins.push({
       apply: (compiler) => {
         compiler.hooks.done.tap('PrintSuccessMessagePlugin', (stats) => {
