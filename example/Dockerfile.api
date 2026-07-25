@@ -1,0 +1,28 @@
+FROM python:3.12-slim
+
+# 1. 安装系统发版基础依赖 (git 与 ssh-client 是代码检出与分发必需)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    openssh-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. 设置容器工作目录与变量
+WORKDIR /root/pipelinex/pipelinex_api
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# 3. 使用国内源加速安装 Python 依赖
+COPY ./pipelinex_api/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 4. 复制后端全部代码文件
+COPY ./pipelinex_api/ ./
+
+# 5. 挂载并转换多进程启动脚本 (防 Windows 换行符 CRLF 兼容报错)
+COPY ./example/entrypoint.sh /root/entrypoint.sh
+RUN sed -i 's/\r$//' /root/entrypoint.sh && chmod +x /root/entrypoint.sh
+
+# 6. 暴露 8000 后端端口与定义入口
+EXPOSE 8000
+ENTRYPOINT ["/root/entrypoint.sh"]
