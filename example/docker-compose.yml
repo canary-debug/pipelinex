@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # 1. Redis 缓存与临时调度服务
+  redis:
+    image: redis:alpine
+    container_name: pipelinex-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # 2. MySQL 数据库服务 (包含数据库结构与自带发版模板种子数据自动初始化)
+  mysql:
+    image: mysql:8.0
+    container_name: pipelinex-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: pipelinex
+      MYSQL_ROOT_PASSWORD: root_password_here
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # 挂载 SQL 目录，首次创建容器会自动按顺序执行并灌入模板种子数据
+      - ../doc/sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+
+  # 3. PipelineX 后端多进程单容器服务 (合并运行 runserver, runworker, runscheduler, runmonitor)
+  pipelinex-api:
+    build:
+      context: ../
+      dockerfile: example/Dockerfile.api
+    container_name: pipelinex-api
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../pipelinex_api/pipelinex.conf:/root/pipelinex/pipelinex_api/pipelinex.conf
+      - ../repos:/root/pipelinex/repos
+    depends_on:
+      - mysql
+      - redis
+
+  # 4. PipelineX 前端服务 (Node 多阶段构建与 Nginx 反代)
+  pipelinex-web:
+    build:
+      context: ../
+      dockerfile: example/Dockerfile.web
+    container_name: pipelinex-web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - pipelinex-api
+
+volumes:
+  redis_data:
+  mysql_data:
