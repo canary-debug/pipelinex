@@ -35,7 +35,9 @@ def test_k8s_connection(kubeconfig_yaml):
         v1 = client.VersionApi(api_client)
         v1.get_code(_request_timeout=3)
         return 1  # 正常
-    except Exception:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return 2  # 异常
 
 class EnvironmentView(View):
