@@ -50,29 +50,3 @@ pip install -r requirements.txt
 python manage.py runserver
 ```
 
-## 预览
-
-### 主机管理
-![image](https://cdn.spug.cc/img/3.0/host.jpg)
-
-#### 主机在线终端
-![image](https://cdn.spug.cc/img/3.0/web-terminal.jpg)
-
-#### 文件在线上传下载
-![image](https://cdn.spug.cc/img/3.0/file-manager.jpg)
-
-#### 主机批量执行
-![image](https://cdn.spug.cc/img/3.0/host-exec.jpg)
-![image](https://cdn.spug.cc/img/3.0/host-exec2.jpg)
-
-#### 应用发布
-![image](https://cdn.spug.cc/img/3.0/deploy.jpg)
-
-#### 监控报警
-![image](https://cdn.spug.cc/img/3.0/monitor.jpg)
-
-#### 角色权限
-![image](https://cdn.spug.cc/img/3.0/user-role.jpg)
-
-## License & Copyright
-[AGPL-3.0](https://opensource.org/licenses/AGPL-3.0)
