@@ -11,6 +11,7 @@ class Environment(models.Model, ModelMixin):
     key = models.CharField(max_length=50)
     desc = models.CharField(max_length=255, null=True)
     k8s_config = models.TextField(null=True)
+    k8s_status = models.IntegerField(default=0)  # 0: 未配置, 1: 正常, 2: 异常
     sort_id = models.IntegerField(default=0, db_index=True)
     created_at = models.CharField(max_length=20, default=human_datetime)
     created_by = models.ForeignKey(User, on_delete=models.PROTECT)
@@ -18,6 +19,7 @@ class Environment(models.Model, ModelMixin):
     def to_dict(self, *args, **kwargs):
         tmp = super().to_dict(*args, **kwargs)
         tmp['has_k8s_config'] = bool(self.k8s_config)
+        tmp['k8s_status'] = self.k8s_status
         tmp.pop('k8s_config', None)
         return tmp
 

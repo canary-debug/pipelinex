@@ -40,7 +40,7 @@ services:
       - "8000:8000"
     volumes:
       - ../pipelinex_api/pipelinex.conf:/root/pipelinex/pipelinex_api/pipelinex.conf
-      - ../repos:/root/pipelinex/repos
+      - ../.repos:/root/pipelinex/repos
     depends_on:
       - mysql
       - redis

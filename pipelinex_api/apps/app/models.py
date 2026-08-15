@@ -98,7 +98,6 @@ class DeployExtend1(models.Model, ModelMixin):
     hook_post_server = models.TextField(null=True)
     hook_pre_host = models.TextField(null=True)
     hook_post_host = models.TextField(null=True)
-    template_id = models.IntegerField(null=True)
 
     def to_dict(self, *args, **kwargs):
         tmp = super().to_dict(*args, **kwargs)
@@ -142,7 +141,6 @@ class DeployExtend3(models.Model, ModelMixin):
     image_repo = models.CharField(max_length=255)
     hook_pre_server = models.TextField(null=True)
     hook_post_server = models.TextField(null=True)
-    template_id = models.IntegerField(null=True)
 
     def to_dict(self, *args, **kwargs):
         return super().to_dict(*args, **kwargs)

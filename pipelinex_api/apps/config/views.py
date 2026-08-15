@@ -25,6 +25,21 @@ def try_base64_decode(val):
 
 
 
+def test_k8s_connection(kubeconfig_yaml):
+    try:
+        import yaml
+        from kubernetes import client, config
+        kubeconfig_dict = yaml.safe_load(kubeconfig_yaml)
+        # Use an isolated configuration to avoid polluting the global config
+        api_client = config.new_client_from_config_dict(kubeconfig_dict)
+        v1 = client.VersionApi(api_client)
+        v1.get_code(_request_timeout=3)
+        return 1  # 正常
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return 2  # 异常
+
 class EnvironmentView(View):
     def get(self, request):
         query = {}
@@ -60,12 +75,15 @@ class EnvironmentView(View):
                     pass
                 elif form.k8s_config.strip() == '':
                     data['k8s_config'] = None
+                    data['k8s_status'] = 0
                 else:
-                    config_val = try_base64_decode(form.k8s_config)
-                    data['k8s_config'] = encrypt_kubeconfig(config_val.strip())
+                    config_val = try_base64_decode(form.k8s_config).strip()
+                    data['k8s_config'] = encrypt_kubeconfig(config_val)
+                    data['k8s_status'] = test_k8s_connection(config_val)
             else:
                 if not form.id:
                     data['k8s_config'] = None
+                    data['k8s_status'] = 0
 
             if form.id:
                 Environment.objects.filter(pk=form.id).update(**data)
