@@ -72,7 +72,11 @@ function ComTable() {
       <Table.Column title="标识符" key="key" render={info => (
         <span>
           {info.key}
-          {info.has_k8s_config && <Tag color="green" style={{marginLeft: 8}}>K8s</Tag>}
+          {info.has_k8s_config && (
+            info.k8s_status === 1 ? <Tag color="success" style={{marginLeft: 8}}>K8s连通</Tag> :
+            info.k8s_status === 2 ? <Tag color="error" style={{marginLeft: 8}}>K8s未连通</Tag> :
+            <Tag color="processing" style={{marginLeft: 8}}>K8s已配置</Tag>
+          )}
         </span>
       )}/>
       <Table.Column ellipsis title="描述信息" dataIndex="desc"/>
