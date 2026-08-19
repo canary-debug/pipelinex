@@ -59,7 +59,7 @@ export default function () {
             content: <div>
               未能获取到访问者的真实IP，无法提供基于请求来源IP的合法性验证，详细信息请参考
               <a target="_blank"
-                 href="https://ops.spug.cc/docs/practice/"
+                 href="https://ops.kube.cc/docs/practice/"
                  rel="noopener noreferrer">官方文档</a>。
             </div>,
             onOk: () => doLogin(data)
