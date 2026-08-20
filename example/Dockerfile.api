@@ -10,6 +10,9 @@ RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.li
     pkg-config \
     default-libmysqlclient-dev \
     build-essential \
+    libldap2-dev \
+    libsasl2-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. 设置容器工作目录与全局镜像源环境变量
