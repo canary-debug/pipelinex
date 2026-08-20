@@ -32,21 +32,98 @@ PipelineX 采用 [Spug](https://github.com/openspug/spug) 作为上游基石进�
 * Node 12.14+ (已解决 Node 17+ 升级引发的加密套件兼容问题)
 * React 16.11
 
-## 安装与快速启动
+## 🚀 部署与运行 (Docker)
 
-请参考项目中的 `pipelinex.example.conf` 配置文件模板，创建您的本地 `pipelinex.conf` 数据库与端口配置。
+本项目推荐使用 Docker Compose 进行一键环境构建与服务部署，容器化不仅解决了依赖版本问题，也为您自动打通了 MySQL 与 Redis 服务。
 
-### 前端依赖安装与开发模式启动
-```powershell
-cd pipelinex_web
-npm install
-npm run dev
+### 1. 获取源码
+
+首先克隆本项目代码到本地，再进行后续的操作：
+
+```bash
+git clone https://github.com/canary-debug/pipelinex.git
+cd pipelinex
 ```
 
-### 后端依赖安装与服务启动
-```powershell
+### 2. 准备配置文件
+
+首先，基于项目提供的模板创建您的配置文件：
+
+```bash
 cd pipelinex_api
-pip install -r requirements.txt
-python manage.py runserver
+cp pipelinex.example.conf pipelinex.conf
 ```
 
+**修改配置项**：因为采用 Docker 桥接网络部署，请修改 `pipelinex.conf`，将 `host` 地址更改为对应的容器名 `mysql` 和 `redis`，并确保 MySQL 密码与 `docker-compose.yml` 中定义的密码一致。
+
+修改后的 `pipelinex.conf` 数据库部分示例：
+```ini
+[mysql]
+host = mysql
+port = 3306
+user = root
+password = root_password_here
+database = pipelinex
+
+[redis]
+host = redis
+port = 6379
+password = 
+```
+
+### 3. 一键启动服务
+
+进入 `example` 目录并使用 docker-compose 启动包括前后端及基础设施在内的所有容器：
+
+```bash
+cd example
+docker-compose up -d
+```
+*注：本项目基于 Django ORM 模型驱动，无需手动或自动导入旧版本的增量 SQL 升级脚本，后续步骤会自动完成全量最新表结构的构建。*
+
+### 4. 初始化服务 (首次运行必须)
+
+容器启动成功后，请在宿主机终端依次执行以下命令，完成数据库结构的初始化与管理员账号创建：
+
+**1. 初始化与更新数据库结构**：
+```bash
+docker exec -it pipelinex-api python manage.py updatedb
+```
+*(注：该命令会自动检测所有模型变更并完成最新数据表的创建，因此您**不需要**手动执行 `doc/sql` 目录下的升级脚本。)*
+
+**2. 创建初始超级管理员账号**：
+```bash
+docker exec -it pipelinex-api python manage.py user add -u admin -p admin -n 管理员 -s
+```
+*注：`-u` 指定登录账号，`-p` 指定密码，`-n` 指定账号昵称，`-s` 标识为超级管理员。您可以自行修改初始化密码。*
+
+### 5. 访问系统
+
+服务初始化完成后，即可通过浏览器访问 Web 服务：
+
+- **Web 访问入口**: [http://localhost](http://localhost) (或您的服务器 IP)
+- **后端 API**: [http://localhost:8000](http://localhost:8000)
+
+### 6. 常用操作命令
+
+以下是一些日常维护中常用的快捷操作命令（在宿主机执行）：
+
+- **查看后端服务实时日志**：
+  ```bash
+  docker logs -f pipelinex-api
+  ```
+- **重启后端 API 服务**：
+  ```bash
+  docker restart pipelinex-api
+  ```
+- **重置账户密码** (例如忘记 admin 密码)：
+  ```bash
+  docker exec -it pipelinex-api python manage.py user reset -u admin -p new_password
+  ```
+- **解除账户禁用状态**：
+  ```bash
+  docker exec -it pipelinex-api python manage.py user enable -u admin
+  ```
+
+---
+欢迎提交 Issue 和 Pull Request 共建 PipelineX 生态！
