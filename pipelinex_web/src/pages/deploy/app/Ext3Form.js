@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
-import { Modal, Form, Radio, Input, Switch, Select, message, Steps, Button, AutoComplete, Tooltip } from 'antd';
+import { Modal, Form, Radio, Input, Switch, Select, message, Steps, Button, AutoComplete } from 'antd';
 import envStore from 'pages/config/environment/store';
 import { http, cleanCommand } from 'libs';
 import { ACEditor } from 'components';
@@ -22,28 +22,22 @@ export default observer(function Ext3Form() {
   const info = store.deploy;
   const [hookPreServer, setHookPreServer] = useState(info.hook_pre_server || '');
   const [hookPostServer, setHookPostServer] = useState(info.hook_post_server || '');
+
   const [page, setPage] = useState(0);
   const [namespaces, setNamespaces] = useState([]);
   const [fetchingNs, setFetchingNs] = useState(false);
   const [nsError, setNsError] = useState(null);
 
-  function handleNext() {
-    form.validateFields()
-      .then(() => {
-        setPage(1);
-      })
-  }
-
   const fetchNamespaces = (envId) => {
     if (!envId) return;
     setFetchingNs(true);
     setNsError(null);
-    http.get(/api/config/environment/${envId}/namespaces/)
+    http.get('/api/config/environment/' + envId + '/namespaces/')
       .then(res => {
         setNamespaces(res || []);
       })
       .catch(err => {
-        setNsError('��ȡ�����ռ�ʧ��');
+        setNsError('获取命名空间失败');
         setNamespaces([]);
       })
       .finally(() => {
@@ -56,6 +50,13 @@ export default observer(function Ext3Form() {
       fetchNamespaces(info.env_id);
     }
   }, []);
+
+  function handleNext() {
+    form.validateFields()
+      .then(() => {
+        setPage(1);
+      })
+  }
 
   function updateEnvs() {
     const ids = store.currentRecord['deploys'].map(x => x.env_id);
@@ -80,7 +81,8 @@ export default observer(function Ext3Form() {
       hook_post_server: hookPostServer,
       app_id: store.app_id,
       extend: '3',
-      host_ids: []  // K8s发布不使用传统物理主�?    };
+      host_ids: []  // K8s发布不使用传统物理主机
+    };
     http.post('/api/app/deploy/', info)
       .then(res => {
         message.success('操作成功');
@@ -97,7 +99,8 @@ export default observer(function Ext3Form() {
     title = '新建' + title;
   }
 
-  // 默认通知配置初始化防止报�?  if (!info.rst_notify) {
+  // 默认通知配置初始化防止报错
+  if (!info.rst_notify) {
     info.rst_notify = {mode: '0'};
   }
 
@@ -123,11 +126,11 @@ export default observer(function Ext3Form() {
         </Form.Item>
 
         <div style={{ display: page === 0 ? 'block' : 'none' }}>
-          <Form.Item required name="env_id" label="发布环境" tooltip="每个发布环境只能创建一个配置。此环境必须在“环境管理”中提前配置�?Kkubeconfig 凭证�?>
-            <Select disabled={store.isReadOnly} placeholder="请选择发布环境">
+          <Form.Item required name="env_id" label="发布环境" tooltip="每个发布环境只能创建一个配置。此环境必须在“环境管理”中提前配置好 Kkubeconfig 凭证。">
+            <Select disabled={store.isReadOnly} placeholder="请选择发布环境" onChange={fetchNamespaces}>
               {envStore.records.map(item => (
                 <Select.Option disabled={envs.includes(item.id)} value={item.id} key={item.id}>
-                  {item.name} {item.has_k8s_config ? ' (已配�?K8s)' : ' (未配�?K8s)'}
+                  {item.name} {item.has_k8s_config ? ' (已配置 K8s)' : ' (未配置 K8s)'}
                 </Select.Option>
               ))}
             </Select>
@@ -139,25 +142,34 @@ export default observer(function Ext3Form() {
               <Radio.Button value="DaemonSet">DaemonSet</Radio.Button>
             </Radio.Group>
           </Form.Item>
-          <Form.Item required name="workload_namespace" label="命名空间" initialValue="default" tooltip="该应用在 Kubernetes 集群中部署所处的命名空间 (Namespace)，默认值为 default�?>
-            <Input disabled={store.isReadOnly} placeholder="请输入命名空间，例如：default"/>
+          <Form.Item required name="workload_namespace" label="命名空间" initialValue="default" tooltip="该应用在 Kubernetes 集群中部署所处的命名空间 (Namespace)，默认值为 default。">
+            <AutoComplete disabled={store.isReadOnly} placeholder={nsError ? "获取命名空间失败，请手动输入" : (fetchingNs ? "获取中..." : "请输入或选择命名空间")}>
+              {namespaces.map(ns => (
+                <AutoComplete.Option key={ns} value={ns}>{ns}</AutoComplete.Option>
+              ))}
+              {info.workload_namespace && !namespaces.includes(info.workload_namespace) && namespaces.length > 0 && (
+                <AutoComplete.Option key={info.workload_namespace} value={info.workload_namespace}>
+                  {info.workload_namespace} (⚠ 集群中未找到)
+                </AutoComplete.Option>
+              )}
+            </AutoComplete>
           </Form.Item>
           <Form.Item required name="workload_name" label="工作负载名称">
-            <Input disabled={store.isReadOnly} placeholder="请输�?Kubernetes 工作负载名称，例如：order-service"/>
+            <Input disabled={store.isReadOnly} placeholder="请输入 Kubernetes 工作负载名称，例如：order-service"/>
           </Form.Item>
           <Form.Item required name="container_name" label="容器名称">
             <Input disabled={store.isReadOnly} placeholder="请输入容器名称，例如：order-container"/>
           </Form.Item>
-          <Form.Item required name="image_repo" label="镜像仓库地址" tooltip="请输入镜像仓库地址（不需要包�?tag 标签）。例如：registry.cn-hangzhou.aliyuncs.com/mycorp/order-service">
-            <Input disabled={store.isReadOnly} placeholder="请输入镜像仓库地址，不需要包�?tag 标签"/>
+          <Form.Item required name="image_repo" label="镜像仓库地址" tooltip="请输入镜像仓库地址（不需要包含 tag 标签）。例如：registry.cn-hangzhou.aliyuncs.com/mycorp/order-service">
+            <Input disabled={store.isReadOnly} placeholder="请输入镜像仓库地址，不需要包含 tag 标签"/>
           </Form.Item>
-          <Form.Item name="git_repo" label="Git仓库地址" extra={<span className="btn" onClick={() => setRepoVisible(true)}>私有仓库�?/span>}>
-            <Input disabled={store.isReadOnly} placeholder="可选，若需要拉取代码构建镜像并推送，请输入Git仓库地址�?/>
+          <Form.Item name="git_repo" label="Git仓库地址" extra={<span className="btn" onClick={() => setRepoVisible(true)}>私有仓库？</span>}>
+            <Input disabled={store.isReadOnly} placeholder="可选，若需要拉取代码构建镜像并推送，请输入Git仓库地址。"/>
           </Form.Item>
-          <Form.Item name="is_audit" label="发布审核" valuePropName="checked" tooltip="开启后发布申请需要审批通过后才能发布�?>
-            <Switch disabled={store.isReadOnly} checkedChildren="开�? unCheckedChildren="关闭"/>
+          <Form.Item name="is_audit" label="发布审核" valuePropName="checked" tooltip="开启后发布申请需要审批通过后才能发布。">
+            <Switch disabled={store.isReadOnly} checkedChildren="开启" unCheckedChildren="关闭"/>
           </Form.Item>
-          <Form.Item label="消息通知" extra="应用审核及发布成�?失败结果的渠道通知配置�?>
+          <Form.Item label="消息通知" extra="应用审核及发布成功/失败结果的渠道通知配置。">
             <Input.Group compact>
               <Form.Item name={['rst_notify', 'mode']} noStyle>
                 <Select disabled={store.isReadOnly} style={{width: 100}}>
@@ -168,7 +180,7 @@ export default observer(function Ext3Form() {
                 </Select>
               </Form.Item>
               <Form.Item name={['rst_notify', 'value']} noStyle>
-                <Input disabled={store.isReadOnly} style={{width: 'calc(100% - 100px)'}} placeholder="请输�?Webhook 机器人通知地址"/>
+                <Input disabled={store.isReadOnly} style={{width: 'calc(100% - 100px)'}} placeholder="请输入 Webhook 机器人通知地址"/>
               </Form.Item>
             </Input.Group>
           </Form.Item>
@@ -177,8 +189,8 @@ export default observer(function Ext3Form() {
         <div style={{ display: page === 1 ? 'block' : 'none' }}>
           <Form.Item
             label="代码检出前执行"
-            tooltip="在运�?PipelineX 的服务器(或容�?上执行，当前目录为仓库源代码目录，可以执行任意自定义命令�?
-            extra={<span>请避免在此修改已跟踪的文件，防止在检出代码时失败�?/span>}>
+            tooltip="在运行 PipelineX 的服务器(或容器)上执行，当前目录为仓库源代码目录，可以执行任意自定义命令。"
+            extra={<span>请避免在此修改已跟踪的文件，防止在检出代码时失败。</span>}>
             <ACEditor
               readOnly={store.isReadOnly}
               mode="sh"
@@ -193,8 +205,8 @@ export default observer(function Ext3Form() {
           <Form.Item
             label="代码检出后执行"
             style={{ marginTop: 12, marginBottom: 24 }}
-            tooltip="在运�?PipelineX 的服务器(或容�?上执行，当前目录为检出后的源代码目录，可执行任意自定义命令�?
-            extra={<span>大多数情况下在此进行构建操作（如 npm run build �?mvn package）�?/span>}>
+            tooltip="在运行 PipelineX 的服务器(或容器)上执行，当前目录为检出后的源代码目录，可执行任意自定义命令。"
+            extra={<span>大多数情况下在此进行构建操作（如 npm run build 或 mvn package）。</span>}>
             <ACEditor
               readOnly={store.isReadOnly}
               mode="sh"
@@ -225,7 +237,8 @@ export default observer(function Ext3Form() {
                 {page === 1 ? (
                   <>
                     <Button onClick={() => setPage(0)} style={{ marginRight: 8 }}>
-                      上一�?                    </Button>
+                      上一步
+                    </Button>
                     <Button type="primary" loading={loading} onClick={handleSubmit}>
                       确定
                     </Button>
@@ -234,7 +247,8 @@ export default observer(function Ext3Form() {
                   <>
                     {hasGit ? (
                       <Button type="primary" onClick={handleNext}>
-                        下一�?                      </Button>
+                        下一步
+                      </Button>
                     ) : (
                       <Button type="primary" loading={loading} onClick={handleSubmit}>
                         确定
@@ -251,4 +265,3 @@ export default observer(function Ext3Form() {
     </Modal>
   )
 })
-

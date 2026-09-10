@@ -412,3 +412,28 @@ def get_namespaces(request, e_id):
         return json_response(namespaces)
     except Exception as e:
         return json_response(error='Á¬½Ó K8s ¼¯Èº»ñÈ¡ÃüÃû¿Õ¼äÊ§°Ü')
+
+
+from libs import decrypt_kubeconfig
+
+def get_namespaces(request, e_id):
+    env = Environment.objects.filter(pk=e_id).first()
+    if not env:
+        return json_response(error='æœªæ‰¾åˆ°æŒ‡å®šç¯å¢ƒ')
+    if not env.k8s_config:
+        return json_response(error='è¯¥ç¯å¢ƒæœªé…ç½® K8s é›†ç¾¤')
+    
+    try:
+        kubeconfig_yaml = decrypt_kubeconfig(env.k8s_config)
+        import yaml
+        from kubernetes import client, config
+        kubeconfig_dict = yaml.safe_load(kubeconfig_yaml)
+        api_client = config.new_client_from_config_dict(kubeconfig_dict)
+        core_v1 = client.CoreV1Api(api_client)
+        ns_list = core_v1.list_namespace(_request_timeout=5)
+        namespaces = [ns.metadata.name for ns in ns_list.items]
+        return json_response(namespaces)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return json_response(error='è¿æ¥ K8s é›†ç¾¤è·å–å‘½åç©ºé—´å¤±è´¥')
