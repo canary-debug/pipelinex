@@ -27,6 +27,7 @@ export default observer(function Ext3Form() {
   const [namespaces, setNamespaces] = useState([]);
   const [fetchingNs, setFetchingNs] = useState(false);
   const [nsError, setNsError] = useState(null);
+  const [nsSearch, setNsSearch] = useState(null);
 
   const fetchNamespaces = (envId) => {
     if (!envId) return;
@@ -143,7 +144,7 @@ export default observer(function Ext3Form() {
             </Radio.Group>
           </Form.Item>
           <Form.Item required name="workload_namespace" label="命名空间" initialValue="default" tooltip="该应用在 Kubernetes 集群中部署所处的命名空间 (Namespace)，默认值为 default。">
-            <AutoComplete disabled={store.isReadOnly} placeholder={nsError ? "获取命名空间失败，请手动输入" : (fetchingNs ? "获取中..." : "请输入或选择命名空间")}>
+            <AutoComplete disabled={store.isReadOnly} placeholder={nsError ? "获取命名空间失败，请手动输入" : (fetchingNs ? "获取中..." : "请输入或选择命名空间")} onFocus={() => setNsSearch(null)} onSearch={(val) => setNsSearch(val)} filterOption={(inputValue, option) => option.value.toLowerCase().indexOf((nsSearch !== null ? nsSearch : "").toLowerCase()) !== -1}>
               {namespaces.map(ns => (
                 <AutoComplete.Option key={ns} value={ns}>{ns}</AutoComplete.Option>
               ))}
