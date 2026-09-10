@@ -151,7 +151,7 @@ export default function () {
       </div>
 
       <div className={styles.footerZone}>
-        <div style={{color: 'rgba(0, 0, 0, .45)'}}>Copyright <CopyrightOutlined/> {new Date().getFullYear()} By OpenSpug</div>
+        <div style={{color: 'rgba(0, 0, 0, .45)'}}>Copyright <CopyrightOutlined/> {new Date().getFullYear()} By pipelinex.com.cn</div>
       </div>
     </div>
   )

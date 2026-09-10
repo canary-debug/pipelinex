@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
-import { Modal, Form, Radio, Input, Switch, Select, message, Steps, Button } from 'antd';
+import { Modal, Form, Radio, Input, Switch, Select, message, Steps, Button, AutoComplete } from 'antd';
 import envStore from 'pages/config/environment/store';
 import { http, cleanCommand } from 'libs';
 import { ACEditor } from 'components';
@@ -22,7 +22,35 @@ export default observer(function Ext3Form() {
   const info = store.deploy;
   const [hookPreServer, setHookPreServer] = useState(info.hook_pre_server || '');
   const [hookPostServer, setHookPostServer] = useState(info.hook_post_server || '');
+
   const [page, setPage] = useState(0);
+  const [namespaces, setNamespaces] = useState([]);
+  const [fetchingNs, setFetchingNs] = useState(false);
+  const [nsError, setNsError] = useState(null);
+  const [nsSearch, setNsSearch] = useState(null);
+
+  const fetchNamespaces = (envId) => {
+    if (!envId) return;
+    setFetchingNs(true);
+    setNsError(null);
+    http.get('/api/config/environment/' + envId + '/namespaces/')
+      .then(res => {
+        setNamespaces(res || []);
+      })
+      .catch(err => {
+        setNsError('获取命名空间失败');
+        setNamespaces([]);
+      })
+      .finally(() => {
+        setFetchingNs(false);
+      });
+  };
+
+  useEffect(() => {
+    if (info.env_id) {
+      fetchNamespaces(info.env_id);
+    }
+  }, []);
 
   function handleNext() {
     form.validateFields()
@@ -100,7 +128,7 @@ export default observer(function Ext3Form() {
 
         <div style={{ display: page === 0 ? 'block' : 'none' }}>
           <Form.Item required name="env_id" label="发布环境" tooltip="每个发布环境只能创建一个配置。此环境必须在“环境管理”中提前配置好 Kkubeconfig 凭证。">
-            <Select disabled={store.isReadOnly} placeholder="请选择发布环境">
+            <Select disabled={store.isReadOnly} placeholder="请选择发布环境" onChange={fetchNamespaces}>
               {envStore.records.map(item => (
                 <Select.Option disabled={envs.includes(item.id)} value={item.id} key={item.id}>
                   {item.name} {item.has_k8s_config ? ' (已配置 K8s)' : ' (未配置 K8s)'}
@@ -116,7 +144,16 @@ export default observer(function Ext3Form() {
             </Radio.Group>
           </Form.Item>
           <Form.Item required name="workload_namespace" label="命名空间" initialValue="default" tooltip="该应用在 Kubernetes 集群中部署所处的命名空间 (Namespace)，默认值为 default。">
-            <Input disabled={store.isReadOnly} placeholder="请输入命名空间，例如：default"/>
+            <AutoComplete disabled={store.isReadOnly} placeholder={nsError ? "获取命名空间失败，请手动输入" : (fetchingNs ? "获取中..." : "请输入或选择命名空间")} onFocus={() => setNsSearch(null)} onSearch={(val) => setNsSearch(val)} filterOption={(inputValue, option) => option.value.toLowerCase().indexOf((nsSearch !== null ? nsSearch : "").toLowerCase()) !== -1}>
+              {namespaces.map(ns => (
+                <AutoComplete.Option key={ns} value={ns}>{ns}</AutoComplete.Option>
+              ))}
+              {info.workload_namespace && !namespaces.includes(info.workload_namespace) && namespaces.length > 0 && (
+                <AutoComplete.Option key={info.workload_namespace} value={info.workload_namespace}>
+                  {info.workload_namespace} (⚠ 集群中未找到)
+                </AutoComplete.Option>
+              )}
+            </AutoComplete>
           </Form.Item>
           <Form.Item required name="workload_name" label="工作负载名称">
             <Input disabled={store.isReadOnly} placeholder="请输入 Kubernetes 工作负载名称，例如：order-service"/>
