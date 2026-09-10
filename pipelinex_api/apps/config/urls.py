@@ -11,6 +11,7 @@ urlpatterns = [
     path('parse/text/', parse_text),
     path('diff/', post_diff),
     path('environment/', EnvironmentView.as_view()),
+    path('environment/check_k8s_status/', check_k8s_status),
     path('environment/<int:e_id>/namespaces/', get_namespaces),
     path('service/', ServiceView.as_view()),
     path('history/', HistoryView.as_view()),

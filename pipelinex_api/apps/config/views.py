@@ -415,3 +415,30 @@ def get_namespaces(request, e_id):
         import traceback
         traceback.print_exc()
         return json_response(error='连接 K8s 集群获取命名空间失败')
+
+
+def check_k8s_status(request):
+    query = {}
+    if not request.user.is_supper:
+        query['id__in'] = request.user.deploy_perms['envs']
+    envs = list(Environment.objects.filter(**query).exclude(k8s_config__isnull=True).exclude(k8s_config=''))
+    results = {}
+    from concurrent.futures import ThreadPoolExecutor
+    
+    def do_check(k8s_config):
+        try:
+            config_val = decrypt_kubeconfig(k8s_config)
+            return test_k8s_connection(config_val)
+        except Exception:
+            return 2
+            
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_map = {executor.submit(do_check, env.k8s_config): env for env in envs}
+        for f in future_map:
+            env = future_map[f]
+            status = f.result()
+            results[env.id] = status
+            if env.k8s_status != status:
+                Environment.objects.filter(pk=env.id).update(k8s_status=status)
+
+    return json_response(results)

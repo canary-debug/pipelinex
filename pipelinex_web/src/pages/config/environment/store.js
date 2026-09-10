@@ -29,8 +29,21 @@ class Store {
         for (let item of res) {
           this.idMap[item.id] = item
         }
+        this.checkK8sStatus();
       })
       .finally(() => this.isFetching = false)
+  };
+
+    checkK8sStatus = () => {
+    http.get('/api/config/environment/check_k8s_status/').then(res => {
+      if (res) {
+        for (let item of this.records) {
+          if (res[item.id] !== undefined) {
+            item.k8s_status = res[item.id];
+          }
+        }
+      }
+    }).catch(e => console.error(e));
   };
 
   showForm = (info = {}) => {
