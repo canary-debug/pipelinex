@@ -330,7 +330,7 @@ def post_request_ext2(request):
         Argument('deploy_id', type=int, help='缺少必要参数'),
         Argument('name', help='请输申请标题'),
         Argument('host_ids', type=list, filter=lambda x: len(x), help='请选择要部署的主机'),
-        Argument('extra', required=False),
+        Argument('extra', type=None, required=False),
         Argument('version', default=''),
         Argument('type', default='1'),
         Argument('plan', required=False),
