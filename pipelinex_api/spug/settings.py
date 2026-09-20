@@ -140,3 +140,46 @@ try:
     from spug.overrides import *
 except ImportError:
     pass
+
+# Read pipelinex.conf
+import configparser
+config_file = os.path.join(BASE_DIR, 'pipelinex.conf')
+if os.path.exists(config_file):
+    config = configparser.ConfigParser()
+    try:
+        config.read(config_file, encoding='utf-8')
+        
+        # MySQL config
+        if 'mysql' in config:
+            mysql_conf = config['mysql']
+            DATABASES['default'] = {
+                'ATOMIC_REQUESTS': True,
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': mysql_conf.get('database', 'pipelinex'),
+                'USER': mysql_conf.get('user', 'root'),
+                'PASSWORD': mysql_conf.get('password', ''),
+                'HOST': mysql_conf.get('host', '127.0.0.1'),
+                'PORT': mysql_conf.get('port', '3306'),
+                'OPTIONS': {
+                    'charset': 'utf8mb4',
+                }
+            }
+            
+        # Redis config
+        if 'redis' in config:
+            redis_conf = config['redis']
+            redis_host = redis_conf.get('host', '127.0.0.1')
+            redis_port = redis_conf.get('port', '6379')
+            redis_password = redis_conf.get('password', '')
+            
+            if redis_password:
+                redis_url = f"redis://:{redis_password}@{redis_host}:{redis_port}"
+            else:
+                redis_url = f"redis://{redis_host}:{redis_port}"
+                
+            CACHES['default']['LOCATION'] = f"{redis_url}/1"
+            
+            CHANNEL_LAYERS['default']['CONFIG']['hosts'] = [f"{redis_url}/0"]
+            
+    except Exception as e:
+        print(f"[PipelineX] Failed to parse pipelinex.conf: {e}")
