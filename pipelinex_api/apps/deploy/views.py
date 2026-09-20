@@ -149,7 +149,7 @@ class RequestDetailView(View):
         response['index'] = counter
         if counter == 0:
             for item in outputs:
-                outputs[item]['data'] += '\r\n\r\n未读取到数据，Spug 仅保存最近2周的日志信息。'
+                outputs[item]['data'] += '\r\n\r\n未读取到数据，Pipelinex 仅保存最近2周的日志信息。'
 
         if req.is_quick_deploy:
             if outputs['local']['data']:
@@ -344,6 +344,7 @@ def post_request_ext2(request):
         
         # 1. 优先检查是否是 Git 发布
         if deploy.extend_obj.git_repo:
+            form.spug_version = Repository.make_spug_version(deploy.id)
             if isinstance(extra, list):
                 if extra[0] == 'tag':
                     if not extra[1]:
@@ -411,6 +412,7 @@ def post_request_ext3(request):
         extra = form.pop('extra')
         
         if deploy.extend_obj.git_repo:
+            form.spug_version = Repository.make_spug_version(deploy.id)
             if isinstance(extra, list):
                 if extra[0] == 'tag':
                     if not extra[1]:
