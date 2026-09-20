@@ -313,6 +313,11 @@ def _deploy_ext1_host(req, helper, h_id, env):
             command = f'cd {extend.dst_dir} && {extend.hook_post_host}'
             helper.remote(host.id, ssh, command)
 
+        # ========= 新增 Kubernetes 无缝发布调用 =========
+        if not _trigger_k8s_deploy(helper, h_id, env):
+            return
+        # ===============================================
+
         helper.send_step(h_id, 100, f'\r\n{human_time()} ** \033[32m发布成功\033[0m **')
 
 
@@ -357,7 +362,61 @@ def _deploy_ext2_host(helper, h_id, actions, env, spug_version):
                  command = f'cd /tmp && {action["data"]}'
             helper.remote(host.id, ssh, command)
 
+    # ========= 新增 Kubernetes 无缝发布调用 =========
+    if not _trigger_k8s_deploy(helper, h_id, env):
+        return
+    # ===============================================
+
     helper.send_step(h_id, 100, f'\r\n{human_time()} ** \033[32m发布成功\033[0m **')
+
+
+def _trigger_k8s_deploy(helper, h_id, env):
+    """
+    公共方法：判断并触发 Kubernetes 自动发布逻辑
+    如果发生错误会返回 False 阻断后续流程，成功或跳过返回 True
+    """
+    from apps.config.models import Environment
+    from libs.kubernetes import update_k8s_deployment, update_k8s_cronworkflow, update_k8s_javadeploy
+    from libs.utils import human_time, decrypt_kubeconfig
+    
+    env_id = env.get('SPUG_ENV_ID')
+    namespace = env.get('_SPUG_K8S_NAMESPACE', 'default')
+    image_name = env.get('_SPUG_IMAGE_NAME')
+    version = env.get('SPUG_VERSION')
+    
+    if not (env_id and image_name and version):
+        return True
+        
+    env_obj = Environment.objects.filter(pk=env_id).first()
+    if not env_obj or not env_obj.k8s_config:
+        return True
+        
+    helper.send_step(h_id, 99, f'{human_time()} 检测到 Kubeconfig，触发 Kubernetes 自动更新...\r\n')
+    
+    # 获取并解密 kubeconfig
+    kubeconfig_yaml = decrypt_kubeconfig(env_obj.k8s_config)
+    image_url = f'{image_name}:{version}'
+    result = None
+    
+    if env.get('_SPUG_K8S_DEPLOY') and env.get('_SPUG_K8S_CONTAINER'):
+        result = update_k8s_deployment(
+            kubeconfig_yaml, namespace, env.get('_SPUG_K8S_DEPLOY'), env.get('_SPUG_K8S_CONTAINER'), image_url)
+    elif env.get('_SPUG_K8S_CRONWORKFLOW') and env.get('_SPUG_K8S_CWF_TEMPLATE'):
+        result = update_k8s_cronworkflow(
+            kubeconfig_yaml, namespace, env.get('_SPUG_K8S_CRONWORKFLOW'), env.get('_SPUG_K8S_CWF_TEMPLATE'), image_url)
+    elif env.get('_SPUG_K8S_JAVA_DEPLOY'):
+        result = update_k8s_javadeploy(
+            kubeconfig_yaml, namespace, env.get('_SPUG_K8S_JAVA_DEPLOY'), image_url)
+    else:
+        helper.send_error(h_id, '缺少 Kubernetes 必要参数，无法确定工作负载类型')
+        return False
+        
+    if result is None:
+        helper.send_info(h_id, 'Kubernetes 发布成功\r\n')
+        return True
+    else:
+        helper.send_error(h_id, f"Kubernetes 发布失败: {result}\r\n")
+        return False
 
 
 # K8s 部署实现

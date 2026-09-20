@@ -35,7 +35,7 @@ export default observer(function () {
       onCancel={() => store.formVisible = false}
       confirmLoading={loading}
       onOk={handleSubmit}>
-      <Form form={form} initialValues={record} labelCol={{span: 6}} wrapperCol={{span: 14}}>
+      <Form form={form} initialValues={{...record, k8s_config: record.has_k8s_config ? '******' : undefined}} labelCol={{span: 6}} wrapperCol={{span: 14}}>
         <Form.Item required name="name" label="环境名称">
           <Input placeholder="请输入环境名称，例如：开发环境"/>
         </Form.Item>
@@ -50,6 +50,15 @@ export default observer(function () {
 
         <Form.Item name="desc" label="备注信息">
           <Input.TextArea placeholder="请输入备注信息"/>
+        </Form.Item>
+        <Form.Item 
+            name="k8s_config" 
+            label="K8s 凭证" 
+            tooltip="可选，配置后将开启该环境的 Kubernetes 自动化发布能力。">
+            <Input.TextArea 
+                autoSize={{ minRows: 4, maxRows: 10 }} 
+                placeholder="请输入 Kubeconfig 集群凭证 (支持原生 YAML 或 Base64 编码)" 
+            />
         </Form.Item>
       </Form>
     </Modal>
