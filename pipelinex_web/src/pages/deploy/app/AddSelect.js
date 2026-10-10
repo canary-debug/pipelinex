@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { observer } from 'mobx-react';
-import { BuildOutlined, OrderedListOutlined, CloudOutlined } from '@ant-design/icons';
+import { BuildOutlined, OrderedListOutlined } from '@ant-design/icons';
 import { Modal, Card } from 'antd';
 import store from './store';
 import styles from './index.module.css';
@@ -32,21 +32,6 @@ export default observer(function AddSelect() {
       host_ids: [],
       host_actions: [],
       server_actions: []
-    };
-  };
-
-  const switchExt3 = () => {
-    store.addVisible = false;
-    store.ext3Visible = true;
-    store.deploy = {
-      is_audit: false,
-      rst_notify: {mode: '0'},
-      host_ids: [],
-      workload_type: 'Deployment',
-      workload_name: '',
-      container_name: '',
-      git_repo: '',
-      image_repo: ''
     };
   };
 
@@ -93,20 +78,7 @@ export default observer(function AddSelect() {
             </div>
           </div>
         </Card>
-        <Card
-          style={{ width: 280, cursor: 'pointer' }}
-          bodyStyle={{ display: 'flex' }}
-          onClick={switchExt3}>
-          <div style={{ marginRight: 16 }}>
-            <CloudOutlined style={{ fontSize: 36, color: '#1890ff' }} />
-          </div>
-          <div>
-            <div className={styles.cardTitle}>K8s发布</div>
-            <div className={styles.cardDesc}>
-              通过 K8s API 自动滚动更新容器镜像。支持代码编译自动构建镜像并推送远程仓库。
-            </div>
-          </div>
-        </Card>
+
       </div>
     </Modal>
   );

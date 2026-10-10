@@ -43,8 +43,8 @@ def dispatch(rep: Repository, helper=None):
             SPUG_REPOS_DIR=REPOS_DIR,
         )
         # append configs
-        configs = compose_configs(rep.app, rep.env_id)
-        configs_env = {f'_SPUG_{k.upper()}': v for k, v in configs.items()}
+        configs = compose_configs(rep.app, rep.env_id, no_prefix=True)
+        configs_env = {f'_PIPELINEX_{k.upper()}': v for k, v in configs.items()}
         env.update(configs_env)
 
         _build(rep, helper, env)
