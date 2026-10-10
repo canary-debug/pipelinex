@@ -83,7 +83,7 @@ def _build(rep: Repository, helper, env):
         helper.send_step('local', 1, f'{human_time()} 检出前任务...\r\n')
         helper.local(f'cd {git_dir} && {extend.hook_pre_server}', env)
 
-    helper.send_step('local', 2, f'{human_time()} 执行检出...        ')
+    helper.send_step('local', 2, f'{human_time()} 执行检�?..        ')
     command = f'cd {git_dir} && git archive --prefix={rep.spug_version}/ {tree_ish} | (cd .. && tar xf -)'
     helper.local(command)
     helper.send_info('local', '\033[32m完成√\033[0m\r\n')
@@ -109,3 +109,4 @@ def _build(rep: Repository, helper, env):
     helper.local(f'mkdir -p {BUILD_DIR} && cd {REPOS_DIR} && tar zcf {tar_file} {exclude} {contain}')
     helper.send_step('local', 5, f'\033[32m完成√\033[0m')
     helper.send_step('local', 100, f'\r\n\r\n{human_time()} ** \033[32m构建成功\033[0m **')
+
