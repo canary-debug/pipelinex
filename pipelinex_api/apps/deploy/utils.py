@@ -52,7 +52,7 @@ def dispatch(req, fail_mode=False):
             SPUG_REPOS_DIR=REPOS_DIR,
         )
         # append configs
-        configs = compose_configs(req.deploy.app, req.deploy.env_id)
+        configs = compose_configs(req.deploy.app, req.deploy.env_id, no_prefix=True)
         configs_env = {f'_PIPELINEX_{k.upper()}': v for k, v in configs.items()}
         env.update(configs_env)
 
