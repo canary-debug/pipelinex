@@ -53,7 +53,7 @@ def dispatch(req, fail_mode=False):
         )
         # append configs
         configs = compose_configs(req.deploy.app, req.deploy.env_id)
-        configs_env = {f'_SPUG_{k.upper()}': v for k, v in configs.items()}
+        configs_env = {f'_PIPELINEX_{k.upper()}': v for k, v in configs.items()}
         env.update(configs_env)
 
         if req.deploy.extend == '1':
@@ -380,8 +380,8 @@ def _trigger_k8s_deploy(helper, h_id, env):
     from libs.utils import human_time, decrypt_kubeconfig
     
     env_id = env.get('SPUG_ENV_ID')
-    namespace = env.get('_SPUG_K8S_NAMESPACE', 'default')
-    image_name = env.get('_SPUG_IMAGE_NAME')
+    namespace = env.get('_PIPELINEX_K8S_NAMESPACE', 'default')
+    image_name = env.get('_PIPELINEX_IMAGE_NAME')
     version = env.get('SPUG_VERSION')
     
     if not (env_id and image_name and version):
@@ -398,15 +398,15 @@ def _trigger_k8s_deploy(helper, h_id, env):
     image_url = f'{image_name}:{version}'
     result = None
     
-    if env.get('_SPUG_K8S_DEPLOY') and env.get('_SPUG_K8S_CONTAINER'):
+    if env.get('_PIPELINEX_K8S_DEPLOY') and env.get('_PIPELINEX_K8S_CONTAINER'):
         result = update_k8s_deployment(
-            kubeconfig_yaml, namespace, env.get('_SPUG_K8S_DEPLOY'), env.get('_SPUG_K8S_CONTAINER'), image_url)
-    elif env.get('_SPUG_K8S_CRONWORKFLOW') and env.get('_SPUG_K8S_CWF_TEMPLATE'):
+            kubeconfig_yaml, namespace, env.get('_PIPELINEX_K8S_DEPLOY'), env.get('_PIPELINEX_K8S_CONTAINER'), image_url)
+    elif env.get('_PIPELINEX_K8S_CRONWORKFLOW') and env.get('_PIPELINEX_K8S_CWF_TEMPLATE'):
         result = update_k8s_cronworkflow(
-            kubeconfig_yaml, namespace, env.get('_SPUG_K8S_CRONWORKFLOW'), env.get('_SPUG_K8S_CWF_TEMPLATE'), image_url)
-    elif env.get('_SPUG_K8S_JAVA_DEPLOY'):
+            kubeconfig_yaml, namespace, env.get('_PIPELINEX_K8S_CRONWORKFLOW'), env.get('_PIPELINEX_K8S_CWF_TEMPLATE'), image_url)
+    elif env.get('_PIPELINEX_K8S_JAVA_DEPLOY'):
         result = update_k8s_javadeploy(
-            kubeconfig_yaml, namespace, env.get('_SPUG_K8S_JAVA_DEPLOY'), image_url)
+            kubeconfig_yaml, namespace, env.get('_PIPELINEX_K8S_JAVA_DEPLOY'), image_url)
     else:
         helper.send_error(h_id, '缺少 Kubernetes 必要参数，无法确定工作负载类型')
         return False
