@@ -32,7 +32,7 @@ class Job:
             SPUG_INTERPRETER=interpreter
         )
         if isinstance(params, dict):
-            self.env.update({f'_SPUG_{k}': str(v) for k, v in params.items()})
+            self.env.update({f'_PIPELINEX_{k}': str(v) for k, v in params.items()})
 
     def _send(self, message):
         self.rds.publish(self.token, json.dumps(message))
@@ -71,3 +71,4 @@ class Job:
             raise e
         finally:
             self.send_status(code)
+
