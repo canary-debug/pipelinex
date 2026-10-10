@@ -153,7 +153,7 @@ def _ext2_deploy(req, helper, env):
             helper.send_info('local', '\033[32m完成√\033[0m\r\n')
             step += 1
 
-            helper.send_step('local', step, f'{human_time()} 执行检�?..        ')
+            helper.send_step('local', step, f'{human_time()} 执行检出...        ')
             git_dir = os.path.join(settings.REPOS_DIR, str(req.deploy_id))
             extras = json.loads(req.extra)
             if extras[0] == 'branch':
@@ -186,7 +186,7 @@ def _ext2_deploy(req, helper, env):
                     if 'name' in extra:
                         action['name'] = extra['name']
                     break
-                helper.send_step('local', step, f'{human_time()} 检测到来源为本地路径的数据传输动作，执行打�?..   \r\n')
+                helper.send_step('local', step, f'{human_time()} 检测到来源为本地路径的数据传输动作，执行打包...   \r\n')
                 action['src'] = action['src'].rstrip('/ ')
                 action['dst'] = action['dst'].rstrip('/ ')
                 if not action['src'] or not action['dst']:
@@ -272,7 +272,7 @@ def _deploy_ext1_host(req, helper, h_id, env):
         code, _ = ssh.exec_command_raw(
             f'mkdir -p {extend.dst_repo} {base_dst_dir} && [ -e {extend.dst_dir} ] && [ ! -L {extend.dst_dir} ]')
         if code == 0:
-            helper.send_error(host.id, f'检测到该主机的发布目录 {extend.dst_dir!r} 已存在，为了数据安全请自行备份后删除该目录，Spug 将会创建并接管该目录�?)
+            helper.send_error(host.id, f'检测到该主机的发布目录 {extend.dst_dir!r} 已存在，为了数据安全请自行备份后删除该目录，Spug 将会创建并接管该目录。')
         if req.type == '2':
             helper.send_step(h_id, 1, '\033[33m跳过√\033[0m\r\n')
         else:
@@ -298,7 +298,7 @@ def _deploy_ext1_host(req, helper, h_id, env):
         # pre host
         repo_dir = os.path.join(extend.dst_repo, req.spug_version)
         if extend.hook_pre_host:
-            helper.send_step(h_id, 2, f'{human_time()} 发布前任�?..       \r\n')
+            helper.send_step(h_id, 2, f'{human_time()} 发布前任务...       \r\n')
             command = f'cd {repo_dir} && {extend.hook_pre_host}'
             helper.remote(host.id, ssh, command)
 
@@ -309,7 +309,7 @@ def _deploy_ext1_host(req, helper, h_id, env):
 
         # post host
         if extend.hook_post_host:
-            helper.send_step(h_id, 4, f'{human_time()} 发布后任�?..       \r\n')
+            helper.send_step(h_id, 4, f'{human_time()} 发布后任务...       \r\n')
             command = f'cd {extend.dst_dir} && {extend.hook_post_host}'
             helper.remote(host.id, ssh, command)
 
@@ -373,7 +373,7 @@ def _deploy_ext2_host(helper, h_id, actions, env, spug_version):
 def _trigger_k8s_deploy(helper, h_id, env):
     """
     公共方法：判断并触发 Kubernetes 自动发布逻辑
-    如果发生错误会返�?False 阻断后续流程，成功或跳过返回 True
+    如果发生错误会返回 False 阻断后续流程，成功或跳过返回 True
     """
     from apps.config.models import Environment
     from libs.kubernetes import update_k8s_deployment, update_k8s_cronworkflow, update_k8s_javadeploy
@@ -391,9 +391,9 @@ def _trigger_k8s_deploy(helper, h_id, env):
     if not env_obj or not env_obj.k8s_config:
         return True
         
-    helper.send_step(h_id, 99, f'{human_time()} 检测到 Kubeconfig，触�?Kubernetes 自动更新...\r\n')
+    helper.send_step(h_id, 99, f'{human_time()} 检测到 Kubeconfig，触发 Kubernetes 自动更新...\r\n')
     
-    # 获取并解�?kubeconfig
+    # 获取并解密 kubeconfig
     kubeconfig_yaml = decrypt_kubeconfig(env_obj.k8s_config)
     image_url = f'{image_name}:{version}'
     result = None
@@ -408,7 +408,7 @@ def _trigger_k8s_deploy(helper, h_id, env):
         result = update_k8s_javadeploy(
             kubeconfig_yaml, namespace, env.get('_PIPELINEX_K8S_JAVA_DEPLOY'), image_url)
     else:
-        helper.send_error(h_id, '缺少 Kubernetes 必要参数，无法确定工作负载类�?)
+        helper.send_error(h_id, '缺少 Kubernetes 必要参数，无法确定工作负载类型')
         return False
         
     if result is None:
@@ -421,7 +421,7 @@ def _trigger_k8s_deploy(helper, h_id, env):
 
 # K8s 部署实现
 def _k8s_deploy(req, helper, env):
-    # FIX: 解决�?ext2 被误切断�?SyntaxError，确�?try 块闭合且�?K8s 发布逻辑优雅地追加至末尾
+    # FIX: 解决原 ext2 被误切断的 SyntaxError，确保 try 块闭合且将 K8s 发布逻辑优雅地追加至末尾
     import yaml
     from kubernetes import client, config
     from libs.utils import decrypt_kubeconfig
@@ -430,7 +430,7 @@ def _k8s_deploy(req, helper, env):
     step = 1
     
     if not req.deploy.env.k8s_config:
-        raise Exception("当前环境未配�?Kubernetes (Kubeconfig) 凭证，请先在环境管理中进行配�?)
+        raise Exception("当前环境未配置 Kubernetes (Kubeconfig) 凭证，请先在环境管理中进行配置")
         
     helper.send_step('local', step, f'{human_time()} 解析 K8s 集群配置...        ')
     try:
@@ -474,7 +474,7 @@ def _k8s_deploy(req, helper, env):
             helper.local(f'cd {repo_dir} && {extend.hook_pre_server}', env)
             
         step += 1
-        helper.send_step('local', step, f'{human_time()} 执行检�?..        ')
+        helper.send_step('local', step, f'{human_time()} 执行检出...        ')
         with Git(extend.git_repo, repo_dir, pkey) as git:
             git.repo.git.clean('-fdx')
             git.repo.git.reset('--hard', tree_ish)
@@ -486,7 +486,7 @@ def _k8s_deploy(req, helper, env):
             helper.local(f'cd {repo_dir} && {extend.hook_post_server}', env)
             
         step += 1
-        helper.send_step('local', step, f'{human_time()} 开始构�?Docker 镜像...        ')
+        helper.send_step('local', step, f'{human_time()} 开始构建 Docker 镜像...        ')
         build_path = os.path.join(settings.REPOS_DIR, str(req.deploy_id))
         build_cmd = f"docker build -t {final_image} ."
         helper.send_info('local', f'执行命令: {build_cmd}\r\n')
@@ -515,10 +515,10 @@ def _k8s_deploy(req, helper, env):
             process.stdout.close()
             process.wait()
             if process.returncode != 0:
-                raise Exception(f"Docker 镜像推送失败，错误�?{process.returncode}")
+                raise Exception(f"Docker 镜像推送失败，错误码 {process.returncode}")
             helper.send_info('local', '\033[32m镜像推送完成√\033[0m\r\n')
         except Exception as e:
-            helper.send_error('local', f'推送镜像失�? {e}', True)
+            helper.send_error('local', f'推送镜像失败: {e}', True)
             raise e
             
         step += 1
@@ -535,7 +535,7 @@ def _k8s_deploy(req, helper, env):
                     found = True
                     break
             if not found:
-                raise Exception(f"在工作负�?{extend.workload_name} 中未找到容器: {extend.container_name}")
+                raise Exception(f"在工作负载 {extend.workload_name} 中未找到容器: {extend.container_name}")
                 
             k8s_apps_api.patch_namespaced_deployment(name=extend.workload_name, namespace=namespace, body=dep)
         elif extend.workload_type.lower() == 'statefulset':
@@ -547,7 +547,7 @@ def _k8s_deploy(req, helper, env):
                     found = True
                     break
             if not found:
-                raise Exception(f"在工作负�?{extend.workload_name} 中未找到容器: {extend.container_name}")
+                raise Exception(f"在工作负载 {extend.workload_name} 中未找到容器: {extend.container_name}")
                 
             k8s_apps_api.patch_namespaced_stateful_set(name=extend.workload_name, namespace=namespace, body=sts)
         elif extend.workload_type.lower() == 'daemonset':
@@ -559,7 +559,7 @@ def _k8s_deploy(req, helper, env):
                     found = True
                     break
             if not found:
-                raise Exception(f"在工作负�?{extend.workload_name} 中未找到容器: {extend.container_name}")
+                raise Exception(f"在工作负载 {extend.workload_name} 中未找到容器: {extend.container_name}")
                 
             k8s_apps_api.patch_namespaced_daemon_set(name=extend.workload_name, namespace=namespace, body=ds)
         else:
@@ -572,7 +572,7 @@ def _k8s_deploy(req, helper, env):
 
     step += 1
     
-    helper.send_step('local', step, f'{human_time()} 等待 K8s 滚动升级就绪检�?..        \r\n')
+    helper.send_step('local', step, f'{human_time()} 等待 K8s 滚动升级就绪检测...        \r\n')
     import time
     max_wait = 300
     check_interval = 5
@@ -588,7 +588,7 @@ def _k8s_deploy(req, helper, env):
                 updated_replicas = status.status.updated_replicas or 0
                 available_replicas = status.status.available_replicas or 0
                 
-                log_msg = f"检测进�? 当前副本�?{replicas}，更新就绪副本数 {updated_replicas}，可用副本数 {available_replicas}\r\n"
+                log_msg = f"检测进度: 当前副本数 {replicas}，更新就绪副本数 {updated_replicas}，可用副本数 {available_replicas}\r\n"
                 helper.send_info('local', log_msg)
                 
                 if updated_replicas == replicas and available_replicas == replicas:
@@ -600,7 +600,7 @@ def _k8s_deploy(req, helper, env):
                 updated_replicas = status.status.updated_replicas or 0
                 ready_replicas = status.status.ready_replicas or 0
                 
-                log_msg = f"检测进�? 当前副本�?{replicas}，更新副本数 {updated_replicas}，就绪副本数 {ready_replicas}\r\n"
+                log_msg = f"检测进度: 当前副本数 {replicas}，更新副本数 {updated_replicas}，就绪副本数 {ready_replicas}\r\n"
                 helper.send_info('local', log_msg)
                 
                 if updated_replicas == replicas and ready_replicas == replicas:
@@ -612,15 +612,14 @@ def _k8s_deploy(req, helper, env):
                 updated = status.status.updated_number_scheduled or 0
                 ready = status.status.number_ready or 0
                 
-                log_msg = f"检测进�? 当前期望节点�?{desired}，更新节点数 {updated}，就绪节点数 {ready}\r\n"
+                log_msg = f"检测进度: 当前期望节点数 {desired}，更新节点数 {updated}，就绪节点数 {ready}\r\n"
                 helper.send_info('local', log_msg)
                 
                 if updated == desired and ready == desired:
                     helper.send_info('local', '\033[32mK8s 部署升级全部就绪成功√\033[0m\r\n')
                     break
         else:
-            raise Exception("K8s 滚动发布超时，请检�?Pod 启动日志是否有异常�?)
+            raise Exception("K8s 滚动发布超时，请检查 Pod 启动日志是否有异常。")
     except Exception as e:
-        helper.send_error('local', f'就绪检测阶段发生异�? {e}', True)
+        helper.send_error('local', f'就绪检测阶段发生异常: {e}', True)
         raise e
-

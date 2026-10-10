@@ -71,4 +71,3 @@ class Job:
             raise e
         finally:
             self.send_status(code)
-
