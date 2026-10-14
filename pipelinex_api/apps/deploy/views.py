@@ -264,7 +264,7 @@ def post_request_ext1(request):
         elif form.extra[0] == 'branch':
             if not form.extra[2]:
                 return json_response(error='请选择要发布的分支及Commit ID')
-            form.version = f'{form.extra[1]}#{form.extra[2][:6]}'
+            form.version = f'{form.extra[1]}-{form.extra[2][:6]}'
         elif form.extra[0] == 'repository':
             if not form.extra[1]:
                 return json_response(error='请选择要发布的版本')
@@ -353,7 +353,7 @@ def post_request_ext2(request):
                 elif extra[0] == 'branch':
                     if not extra[2]:
                         return json_response(error='请选择要发布的分支及Commit ID')
-                    form.version = f'{extra[1]}#{extra[2][:6]}'
+                    form.version = f'{extra[1]}-{extra[2][:6]}'
                 elif extra[0] == 'repository':
                     if not extra[1]:
                         return json_response(error='请选择要发布的版本')
@@ -421,7 +421,7 @@ def post_request_ext3(request):
                 elif extra[0] == 'branch':
                     if not extra[2]:
                         return json_response(error='请选择要发布的分支及Commit ID')
-                    form.version = f'{extra[1]}#{extra[2][:6]}'
+                    form.version = f'{extra[1]}-{extra[2][:6]}'
                 elif extra[0] == 'repository':
                     if not extra[1]:
                         return json_response(error='请选择要发布的版本')

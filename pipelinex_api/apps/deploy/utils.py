@@ -46,6 +46,7 @@ def dispatch(req, fail_mode=False):
             SPUG_ENV_ID=str(req.deploy.env_id),
             SPUG_ENV_KEY=req.deploy.env.key,
             SPUG_VERSION=req.version,
+            PIPELINEX_VERSION=req.version,
             SPUG_BUILD_VERSION=req.spug_version,
             SPUG_DEPLOY_TYPE=req.type,
             SPUG_API_TOKEN=api_token,
@@ -95,7 +96,7 @@ def _ext1_deploy(req, helper, env):
     if extras[0] == 'repository':
         extras = extras[1:]
     if extras[0] == 'branch':
-        env.update(SPUG_GIT_BRANCH=extras[1], SPUG_GIT_COMMIT_ID=extras[2])
+        env.update(SPUG_GIT_BRANCH=extras[1], PIPELINEX_VERSION=req.version)
     else:
         env.update(SPUG_GIT_TAG=extras[1])
     if req.deploy.is_parallel:
@@ -158,7 +159,7 @@ def _ext2_deploy(req, helper, env):
             extras = json.loads(req.extra)
             if extras[0] == 'branch':
                 tree_ish = extras[2]
-                env.update(SPUG_GIT_BRANCH=extras[1], SPUG_GIT_COMMIT_ID=extras[2])
+                env.update(SPUG_GIT_BRANCH=extras[1], PIPELINEX_VERSION=req.version)
             else:
                 tree_ish = extras[1]
                 env.update(SPUG_GIT_TAG=extras[1])
@@ -465,8 +466,10 @@ def _k8s_deploy(req, helper, env):
             extras = extras[1:]
         if extras[0] == 'branch':
             tree_ish = extras[2] if len(extras) > 2 else f'origin/{extras[1]}'
+            env.update(SPUG_GIT_BRANCH=extras[1], PIPELINEX_VERSION=req.version)
         else:
             tree_ish = extras[1]
+            env.update(SPUG_GIT_TAG=extras[1])
             
         if getattr(extend, 'hook_pre_server', None):
             step += 1
