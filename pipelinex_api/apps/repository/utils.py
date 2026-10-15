@@ -38,6 +38,7 @@ def dispatch(rep: Repository, helper=None):
             SPUG_ENV_ID=str(rep.env_id),
             SPUG_ENV_KEY=rep.env.key,
             SPUG_VERSION=rep.version,
+            PIPELINEX_VERSION=rep.version,
             SPUG_BUILD_VERSION=rep.spug_version,
             SPUG_API_TOKEN=api_token,
             SPUG_REPOS_DIR=REPOS_DIR,
@@ -71,7 +72,7 @@ def _build(rep: Repository, helper, env):
     tar_file = os.path.join(BUILD_DIR, f'{rep.spug_version}.tar.gz')
     if extras[0] == 'branch':
         tree_ish = extras[2]
-        env.update(SPUG_GIT_BRANCH=extras[1], SPUG_GIT_COMMIT_ID=extras[2])
+        env.update(SPUG_GIT_BRANCH=extras[1], PIPELINEX_VERSION=rep.version)
     else:
         tree_ish = extras[1]
         env.update(SPUG_GIT_TAG=extras[1])
